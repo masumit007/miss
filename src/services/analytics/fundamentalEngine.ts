@@ -7,7 +7,13 @@ export class FundamentalEngine {
    * Generates full fundamental analysis for a stock
    */
   public static performFullAnalysis(quote: StockQuote): FullFundamentalAnalysis {
-    const isFinancialSector = quote.sector.includes('Financial') || quote.industry.includes('Bank') || quote.industry.includes('NBFC');
+    const sector = String(quote.sector ?? '');
+    const industry = String(quote.industry ?? '');
+
+    const isFinancialSector =
+     sector.includes('Financial') ||
+     industry.includes('Bank') ||
+     industry.includes('NBFC');
 
     // Multi-year synthesized historical data for deep analysis
     const history: FinancialYearData[] = [

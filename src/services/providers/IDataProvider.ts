@@ -5,7 +5,7 @@ import { IPOItem } from '../../types/ipo';
 
 export interface IDataProvider {
   name: string;
-  providerType: 'MOCK' | 'NSE_API' | 'BSE_API' | 'LICENSED_FEED';
+  providerType: 'MOCK' | 'NEPSE_API' | 'LICENSED_FEED';
   
   // Market Level
   getMarketStatus(): Promise<MarketStatusType>;

@@ -243,7 +243,10 @@ export class FrameworkEngines {
 
     let category: FrameworkPeterLynch['category'] = 'Stalwart';
     if (epsGrowth >= 22) category = 'Fast Grower';
-    else if (quote.sector.includes('Metal') || quote.sector.includes('Energy')) category = 'Cyclical';
+    else if (
+        (quote.sector ?? '').includes('Metal') ||
+        (quote.sector ?? '').includes('Energy')
+    ) category = 'Cyclical';
     else if (epsGrowth < 7) category = 'Slow Grower';
 
     let lynchScore = 65;
