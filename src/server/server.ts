@@ -23,12 +23,15 @@ const app = express();
 
 const PORT = Number(process.env.PORT || 3001);
 
-app.use(
-  cors({
-    origin: true
-  })
-);
+// CORS configuration for production-safe deployment
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type']
+};
 
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const provider = ProviderFactory.getProvider();
@@ -943,15 +946,18 @@ app.use(
 
 /*
 |--------------------------------------------------------------------------
-| START SERVER
+| VERCEL SERVERLESS EXPORT & LOCAL DEVELOPMENT
 |--------------------------------------------------------------------------
 */
 
-app.listen(
-  PORT,
-  () => {
+// Export for Vercel serverless execution
+export default app;
+
+// Local development: only listen if this file is run directly
+if (process.env.NODE_ENV !== 'production' && require.main === module) {
+  app.listen(PORT, () => {
     console.log(
       `MISS backend running at http://localhost:${PORT}`
     );
-  }
-);
+  });
+}
