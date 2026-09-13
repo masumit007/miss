@@ -953,8 +953,10 @@ app.use(
 // Export for Vercel serverless execution
 export default app;
 
-// Local development: only listen if this file is run directly
-if (process.env.NODE_ENV !== 'production' && require.main === module) {
+// Local development only.
+// Vercel imports this file as a serverless function,
+// so it must not start its own HTTP listener there.
+if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(
       `MISS backend running at http://localhost:${PORT}`
