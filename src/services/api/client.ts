@@ -6,7 +6,27 @@ import { NewsArticle } from '../../types/news';
 import { IPOItem } from '../../types/ipo';
 import { ScreenerResultItem } from '../../types/screeners';
 
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/$/, '');
+/**
+ * Resolves the API URL for the current environment.
+ * - Production (Vercel): Uses same-origin /api/* routes
+ * - Local dev: Can use http://localhost:3001 or proxy via Vite
+ */
+function getApiUrl(): string {
+  // Use VITE_API_URL if explicitly set (for local dev or custom deployments)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/$/, '');
+  }
+
+  // In production (Vercel), use same-origin relative paths
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return '';
+  }
+
+  // For local development without explicit VITE_API_URL, default to localhost
+  return 'http://localhost:3001';
+}
+
+const API_URL = getApiUrl();
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const controller = new AbortController();
@@ -17,7 +37,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }, 15000);
 
   try {
-    const response = await fetch(`${API_URL}${path}`, {
+    const url = API_URL ? `${API_URL}${path}` : path;
+    const response = await fetch(url, {
       ...options,
       signal: controller.signal,
       headers: {
