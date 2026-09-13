@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@rumess/nepse-api": "^1.0.5",
+    "@vercel/node": "^3.0.0",
     "clsx": "^2.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
