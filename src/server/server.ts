@@ -857,72 +857,7 @@ app.get(
 );
 
 /*
-|--------------------------------------------------------------------------
-| TEMPORARY NEPSE DEBUG
-|--------------------------------------------------------------------------
-|
-| This route is ONLY for checking the raw responses from
-| @rumess/nepse-api.
-|
-| We will remove it after fixing the normalizers.
-|--------------------------------------------------------------------------
-*/
 
-app.get(
-  '/api/debug/nepse',
-  async (
-    _req: Request,
-    res: Response
-  ) => {
-    try {
-      const client =
-        NepseClient.getInstance();
-
-      const [
-        indices,
-        liveMarket,
-        history
-      ] = await Promise.all([
-        client.getIndices(),
-
-        client.getLiveMarket(),
-
-        client.getPriceVolumeHistory(
-          'NABIL'
-        )
-      ]);
-
-      res.json({
-        success: true,
-
-        indices,
-
-        liveMarketSample:
-          Array.isArray(liveMarket)
-            ? liveMarket.slice(0, 2)
-            : liveMarket,
-
-        historySample:
-          Array.isArray(history)
-            ? history.slice(0, 2)
-            : history
-      });
-    } catch (error: any) {
-      console.error(
-        'DEBUG NEPSE ERROR:',
-        error
-      );
-
-      res.status(500).json({
-        success: false,
-
-        error:
-          error?.message ||
-          String(error)
-      });
-    }
-  }
-);
 
 /*
 |--------------------------------------------------------------------------
