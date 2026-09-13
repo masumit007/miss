@@ -89,7 +89,7 @@ export const FundamentalsPage: React.FC<{ onSelectStock: (symbol: string) => voi
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {items.map((it) => (
+              {items.filter((it): it is typeof it & { fundamentals: NonNullable<typeof it.fundamentals> } => it.fundamentals !== null).map((it) => (
                 <tr 
                   key={it.quote.symbol}
                   onClick={() => onSelectStock(it.quote.symbol)}

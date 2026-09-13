@@ -67,7 +67,7 @@ export const BestPicksPage: React.FC<{ onSelectStock: (symbol: string) => void }
 
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <span className="font-mono text-lg font-bold text-white block">₹{item.quote.currentPrice}</span>
+                    <span className="font-mono text-lg font-bold text-white block">Rs. {item.quote.currentPrice}</span>
                     <span className={`text-xs font-mono font-bold ${item.quote.dayChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {item.quote.dayChange >= 0 ? '+' : ''}{item.quote.dayChangePercent}%
                     </span>

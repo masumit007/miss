@@ -1,4 +1,4 @@
-export type ExchangeType = 'NSE' | 'BSE' | 'NEPSE';
+export type ExchangeType = 'NEPSE';
 
 export type MarketStatusType = 'OPEN' | 'CLOSED' | 'PRE-OPEN' | 'POST-MARKET' | 'UNKNOWN';
 
@@ -28,9 +28,11 @@ export interface OHLCV {
 export interface StockQuote {
   symbol: string;
   exchange: ExchangeType;
-  bseCode?: string;
-  isin: string;
+  /** Internal NEPSE security/company id (from @rumess/nepse-api), when known. */
+  securityId?: number | string;
   name: string;
+
+  // --- Always present when the live scraper returns a quote at all ---
   currentPrice: number;
   dayChange: number;
   dayChangePercent: number;
@@ -38,19 +40,31 @@ export interface StockQuote {
   previousClose: number;
   dayHigh: number;
   dayLow: number;
-  fiftyTwoWeekHigh: number;
-  fiftyTwoWeekLow: number;
   volume: number;
-  averageVolume: number; // 20d avg
-  volumeRatio: number;
-  marketCap: number; // in Crores NPR / Arb
-  freeFloatMarketCap?: number;
-  faceValue: number;
-  sharesOutstanding: number; // in Crores / Shares
-  sector: string;
-  industry: string;
-  beta: number;
-  deliveryPercentage?: number;
+  turnover: number;
+
+  // --- NOT provided by NEPSE's live market feed today. These require a
+  // separate join against getSecurityDetails() / getCompanies() that MISS
+  // does not yet perform for every quote. Null means "not fetched / not
+  // available from the source" — NEVER fabricate a value for these. ---
+  isin: string | null;
+  fiftyTwoWeekHigh: number | null;
+  fiftyTwoWeekLow: number | null;
+  averageVolume: number | null; // 20d avg
+  volumeRatio: number | null;
+  marketCap: number | null; // NPR Crores (1 Crore = 1,00,00,000 NPR)
+  freeFloatMarketCap?: number | null;
+  faceValue: number | null;
+  sharesOutstanding: number | null;
+  /**
+   * Only populated when cross-referenced against the company list
+   * (sectorName). Null when that lookup hasn't happened or the source has
+   * no value. Always guard with `sector ?? ''` — never assume non-null.
+   */
+  sector: string | null;
+  industry: string | null;
+  beta: number | null;
+  deliveryPercentage?: number | null;
   freshness: DataFreshness;
 }
 
@@ -94,12 +108,12 @@ export interface ShareholdingPattern {
   period: string;
   promoterHolding: number;
   promoterPledged: number; // % of promoter holding
-  fiiHolding: number;
-  diiHolding: number;
+  foreignHolding: number;
+  institutionalHolding: number;
   publicHolding: number;
   otherHolding: number;
-  fiiCount?: number;
-  diiCount?: number;
+  foreignInvestorCount?: number;
+  institutionalInvestorCount?: number;
   totalShareholders?: number;
 }
 

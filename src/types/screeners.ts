@@ -16,7 +16,7 @@ export type ScreenerPresetType =
   | 'high_momentum_adx'
   | 'low_volatility'
   | 'value_gems'
-  | 'fii_buying_spree'
+  | 'foreign_buying_spree'
   | 'golden_cross'
   | 'custom'
   | 'ai_natural_language';
@@ -38,7 +38,8 @@ export interface CustomScreenerConfig {
 export interface ScreenerResultItem {
   quote: StockQuote;
   technicals: FullTechnicalAnalysis;
-  fundamentals: FullFundamentalAnalysis;
+  /** Null when no real filed financials are available for this stock yet. */
+  fundamentals: FullFundamentalAnalysis | null;
   score: MultiFactorScore;
   matchedCriteria: string[];
 }

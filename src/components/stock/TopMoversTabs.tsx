@@ -20,7 +20,7 @@ export const TopMoversTabs: React.FC<TopMoversTabsProps> = ({ stocks, onSelectSt
     const losersList = [...stocks].sort((a, b) => a.dayChangePercent - b.dayChangePercent).filter((s) => s.dayChangePercent < 0).slice(0, 10);
     const turnoverList = [...stocks].sort((a, b) => ((b.currentPrice * b.volume) - (a.currentPrice * a.volume))).slice(0, 10);
     const volumeList = [...stocks].sort((a, b) => b.volume - a.volume).slice(0, 10);
-    const highsList = [...stocks].filter((s) => s.fiftyTwoWeekHigh > 0 && s.currentPrice >= s.fiftyTwoWeekHigh * 0.95).slice(0, 10);
+    const highsList = [...stocks].filter((s) => s.fiftyTwoWeekHigh !== null && s.fiftyTwoWeekHigh > 0 && s.currentPrice >= s.fiftyTwoWeekHigh * 0.95).slice(0, 10);
 
     return {
       gainers: gainersList,

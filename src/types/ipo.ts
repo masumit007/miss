@@ -1,12 +1,12 @@
 export type IPOStatus = 'UPCOMING' | 'OPEN' | 'CLOSED' | 'LISTED';
 
 export interface IPOSubscriptionBreakdown {
-  qib: number; // e.g. 38.4x
-  nii: number; // e.g. 24.2x
-  retail: number; // e.g. 8.5x
+  // NEPSE IPO allotment categories (not Indian QIB/NII/Retail):
+  generalPublic: number; // e.g. 8.5x subscribed
+  mutualFund: number;
+  foreignEmploymentQuota: number; // Non-Resident Nepali (NRN) / foreign employment quota
   employee?: number;
-  shareholder?: number;
-  overall: number; // e.g. 22.1x
+  overall: number;
   lastUpdated: string;
 }
 
@@ -25,7 +25,7 @@ export interface IPOItem {
   issueSizeCrores: number;
   freshIssueCrores: number;
   ofsCrores: number;
-  exchange: 'NSE, BSE' | 'NSE' | 'BSE' | 'NSE SME' | 'BSE SME' | 'NEPSE';
+  exchange: 'NEPSE';
   subscription: IPOSubscriptionBreakdown;
   issuePrice?: number;
   listingPrice?: number;

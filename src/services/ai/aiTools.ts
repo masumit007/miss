@@ -30,7 +30,15 @@ export class AITools {
     const provider = ProviderFactory.getProvider();
     const quote = await provider.getQuote(symbol);
     if (!quote) return { error: `Stock symbol ${symbol} not found.` };
-    const fund = FundamentalEngine.performFullAnalysis(quote);
+    const history = await provider.getQuarterlyResults(symbol);
+    const fund = FundamentalEngine.performFullAnalysis(quote, [], null);
+    if (!fund) {
+      return {
+        symbol: quote.symbol,
+        error: 'Fundamental data unavailable — no filed financial statements are integrated for this stock yet.',
+        quarterlyResultsOnFile: history.length
+      };
+    }
     return {
       symbol: quote.symbol,
       roe: fund.profitability.roe,
@@ -86,16 +94,22 @@ export class AITools {
     const sh = await provider.getShareholdingPattern(symbol);
     const deals = await provider.getBulkBlockDeals(symbol);
     const sm = SmartMoneyEngine.performAnalysis(quote, sh, deals);
+    if (!sm) {
+      return {
+        symbol: quote.symbol,
+        error: 'Ownership data unavailable — no real shareholding disclosures are integrated for this stock yet.'
+      };
+    }
     return {
       symbol: quote.symbol,
       classification: sm.smartMoneyClassification,
       score: sm.score,
       promoterHolding: sm.latestPromoterHolding,
       promoterPledged: sm.latestPromoterPledged,
-      fiiHolding: sm.latestFiiHolding,
-      diiHolding: sm.latestDiiHolding,
-      fiiChangeQoQ: sm.fiiChangeQoQ,
-      diiChangeQoQ: sm.diiChangeQoQ,
+      foreignHolding: sm.latestForeignHolding,
+      institutionalHolding: sm.latestInstitutionalHolding,
+      foreignChangeQoQ: sm.foreignChangeQoQ,
+      institutionalChangeQoQ: sm.institutionalChangeQoQ,
       evidence: sm.evidence
     };
   }

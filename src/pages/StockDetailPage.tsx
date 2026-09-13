@@ -217,8 +217,8 @@ export const StockDetailPage: React.FC<StockDetailPageProps> = ({ symbol, onNavi
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5">
                 <span className="text-slate-400 block font-mono">Beta (Volatility vs Benchmark)</span>
-                <span className="text-base font-bold font-mono text-white">{data.quote.beta}</span>
-                <span className="text-[11px] text-slate-400 block mt-1">{data.quote.beta > 1 ? 'Historically higher sensitivity than NIFTY 50' : 'Lower volatility than benchmark'}</span>
+                <span className="text-base font-bold font-mono text-white">{data.quote.beta ?? 'N/A'}</span>
+                <span className="text-[11px] text-slate-400 block mt-1">{data.quote.beta !== null && data.quote.beta > 1 ? 'Historically higher sensitivity than the NEPSE Index' : data.quote.beta !== null ? 'Lower volatility than benchmark' : 'Beta not yet available for this stock'}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5">
                 <span className="text-slate-400 block font-mono">Debt to Equity</span>
@@ -278,7 +278,7 @@ export const StockDetailPage: React.FC<StockDetailPageProps> = ({ symbol, onNavi
               <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/20 space-y-1">
                 <span className="font-bold text-rose-400 font-mono block">What Could Invalidate This Thesis?</span>
                 <p>• Consecutive quarterly constant-currency revenue deceleration below 6% YoY.</p>
-                <p>• Breakdown below primary technical reference level (₹{data.technicals.supportResistance.support1}).</p>
+                <p>• Breakdown below primary technical reference level (Rs. {data.technicals.supportResistance.support1}).</p>
                 <p>• Severe escalation in sector-specific regulatory interventions.</p>
               </div>
             </div>

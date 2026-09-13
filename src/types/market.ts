@@ -8,14 +8,16 @@ export interface MarketIndex {
   percentChange: number;
   high: number;
   low: number;
-  open: number;
+  /** Not exposed by the NEPSE index feed — null unless separately sourced. */
+  open: number | null;
   previousClose: number;
   yearlyHigh: number;
   yearlyLow: number;
   peRatio?: number;
   pbRatio?: number;
   dividendYield?: number;
-  sparkline: number[];
+  /** Requires a separate index-history call; null until that's wired up. */
+  sparkline: number[] | null;
 }
 
 export interface MarketBreadth {
@@ -36,20 +38,20 @@ export interface SectorPerformance {
   threeMonthChange: number;
   oneYearChange: number;
   momentum: 'Strong Bullish' | 'Bullish' | 'Neutral' | 'Bearish' | 'Strong Bearish';
-  relativeStrengthVsNifty: 'Outperforming' | 'In-line' | 'Underperforming';
+  relativeStrengthVsNepse: 'Outperforming' | 'In-line' | 'Underperforming';
   topStockSymbol: string;
   topStockGain: number;
-  fiiFlowStatus?: 'Net Inflow' | 'Net Outflow' | 'Neutral';
+  foreignFlowStatus?: 'Net Inflow' | 'Net Outflow' | 'Neutral';
 }
 
 export interface InstitutionalActivity {
   date: string;
-  fiiGrossPurchase: number; // Crores
-  fiiGrossSales: number;
-  fiiNet: number;
-  diiGrossPurchase: number;
-  diiGrossSales: number;
-  diiNet: number;
+  foreignGrossPurchase: number; // Crores
+  foreignGrossSales: number;
+  foreignNet: number;
+  institutionalGrossPurchase: number;
+  institutionalGrossSales: number;
+  institutionalNet: number;
   totalNet: number;
 }
 
@@ -70,7 +72,7 @@ export interface MarketOverviewData {
   sectoralIndices: MarketIndex[];
   breadth: MarketBreadth;
   sectors: SectorPerformance[];
-  recentFiiDii: InstitutionalActivity[];
+  recentInstitutionalFlows: InstitutionalActivity[];
   macro: MacroIndicator[];
   marketRegime: {
     regime: 'Bull Market' | 'Bear Market' | 'Sideways / Rangebound' | 'High Volatility Consolidation' | 'Transition Phase';

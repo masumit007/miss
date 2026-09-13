@@ -34,7 +34,7 @@ export interface PiotroskiItem {
 export interface PiotroskiScorecard {
   score: number; // 0 to 9
   maxScore: 9;
-  classification: 'Very Strong Financial Health (8-9)' | 'Stable / Average Health (5-7)' | 'Weak / Distressed Health (0-4)';
+  classification: 'Very Strong Financial Health (8-9)' | 'Stable / Average Health (5-7)' | 'Weak / Distressed Health (0-4)' | 'Insufficient Data';
   items: PiotroskiItem[];
   summary: string;
 }
@@ -54,8 +54,8 @@ export interface FrameworkCANSLIM {
   i_reason: string;
   m_score: number; // 0-10
   m_reason: string;
-  totalScore: number; // 0-100
-  verdict: 'Strong Leader Candidate' | 'Moderate CANSLIM Setup' | 'Lagging / Weak';
+  totalScore: number; // 0-100 (sub-scores are 0 wherever required source data is unavailable)
+  verdict: 'Strong Leader Candidate' | 'Moderate CANSLIM Setup' | 'Lagging / Weak' | 'Insufficient Data';
 }
 
 export interface FrameworkBuffett {
@@ -68,7 +68,7 @@ export interface FrameworkBuffett {
   estimatedIntrinsicValueRange: string;
   marginOfSafety: string;
   buffettQualityScore: number; // 0-100
-  verdict: 'Buffett-Style Quality Compounder' | 'Acceptable Business' | 'Fails Quality Filters';
+  verdict: 'Buffett-Style Quality Compounder' | 'Acceptable Business' | 'Fails Quality Filters' | 'Insufficient Data';
   disclaimer: string;
 }
 
@@ -79,11 +79,11 @@ export interface FrameworkGraham {
   pbMultiple: number;
   peTimesPb: number; // Graham threshold: < 22.5
   currentRatio: number; // Graham threshold: > 2.0
-  debtToNetCurrentAssets: number; // Graham threshold: < 1.1
-  earningsStabilityYears: number; // >= 10 yrs
-  dividendRecordYears: number;
+  debtToNetCurrentAssets: number | null; // Graham threshold: < 1.1 — null if balance sheet data unavailable
+  earningsStabilityYears: number | null; // >= 10 yrs — null unless enough real history exists
+  dividendRecordYears: number | null; // null unless real dividend history is available
   grahamScore: number; // 0-100
-  classification: 'Defensive Value' | 'Enterprising Value' | 'Overvalued / Does Not Meet Graham Criteria';
+  classification: 'Defensive Value' | 'Enterprising Value' | 'Overvalued / Does Not Meet Graham Criteria' | 'Insufficient Data';
   disclaimer: string;
 }
 
@@ -92,7 +92,7 @@ export interface FrameworkPeterLynch {
   pegRatio: number;
   earningsGrowthRate: number; // %
   debtSafety: string;
-  institutionalOwnershipPercent: number;
+  institutionalOwnershipPercent: number | null; // null unless a real ownership source is joined in
   businessSimplicityNote: string;
   lynchScore: number; // 0-100
   verdict: string;

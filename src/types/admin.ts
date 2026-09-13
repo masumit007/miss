@@ -1,6 +1,6 @@
 export interface SystemConfiguration {
   maintenanceMode: boolean;
-  activeMarketDataProvider: 'MockDataProvider' | 'NSE_Official_API' | 'Licensed_Vendor_Feed' | 'NepseDataProvider';
+  activeMarketDataProvider: 'MockDataProvider' | 'NepseDataProvider' | 'Licensed_Vendor_Feed';
   enableLiveFallback: boolean;
   technicalThresholds: {
     rsiOverbought: number;

@@ -4,197 +4,158 @@ import { FrameworkEngines } from './frameworkEngines';
 
 export class FundamentalEngine {
   /**
-   * Generates full fundamental analysis for a stock
+   * Builds full fundamental analysis from REAL filed financial statements.
+   *
+   * `history` must come from an actual source (company disclosures / NEPSE
+   * filings via IDataProvider.getQuarterlyResults, etc.) — most recent
+   * year first. This function performs arithmetic on whatever real years
+   * are supplied; it never synthesizes financials from market cap or any
+   * other proxy.
+   *
+   * Returns null when there isn't enough real data to say anything
+   * meaningful (currently: whenever `history` is empty, since MISS
+   * doesn't yet have a wired-up NEPSE company-financials source). Callers
+   * must render "Fundamental data unavailable" rather than a blank/zeroed
+   * dashboard when this returns null.
    */
-  public static performFullAnalysis(quote: StockQuote): FullFundamentalAnalysis {
+  public static performFullAnalysis(
+    quote: StockQuote,
+    history: FinancialYearData[],
+    technicalScore: number | null = null
+  ): FullFundamentalAnalysis | null {
+    if (history.length === 0) {
+      return null;
+    }
+
     const sector = String(quote.sector ?? '');
-    const industry = String(quote.industry ?? '');
-
-    const isFinancialSector =
-     sector.includes('Financial') ||
-     industry.includes('Bank') ||
-     industry.includes('NBFC');
-
-    // Multi-year synthesized historical data for deep analysis
-    const history: FinancialYearData[] = [
-      {
-        year: 'FY26',
-        revenue: Math.round(quote.marketCap * 0.42),
-        ebitda: Math.round(quote.marketCap * 0.12),
-        operatingProfit: Math.round(quote.marketCap * 0.10),
-        netProfit: Math.round(quote.marketCap * 0.07),
-        eps: Math.round((quote.marketCap * 0.07 / (quote.sharesOutstanding || 1)) * 100) / 100,
-        operatingCashFlow: Math.round(quote.marketCap * 0.078),
-        capex: Math.round(quote.marketCap * 0.022),
-        freeCashFlow: Math.round(quote.marketCap * 0.056),
-        totalAssets: Math.round(quote.marketCap * 0.65),
-        totalEquity: Math.round(quote.marketCap * 0.35),
-        totalDebt: isFinancialSector ? Math.round(quote.marketCap * 1.2) : Math.round(quote.marketCap * 0.08),
-        cashAndInvestments: Math.round(quote.marketCap * 0.09),
-        currentAssets: Math.round(quote.marketCap * 0.28),
-        currentLiabilities: Math.round(quote.marketCap * 0.14),
-        inventory: Math.round(quote.marketCap * 0.04),
-        receivables: Math.round(quote.marketCap * 0.06),
-        payables: Math.round(quote.marketCap * 0.05),
-        sharesCount: quote.sharesOutstanding,
-        dividendPerShare: Math.round((quote.currentPrice * 0.014) * 10) / 10
-      },
-      {
-        year: 'FY25',
-        revenue: Math.round(quote.marketCap * 0.37),
-        ebitda: Math.round(quote.marketCap * 0.105),
-        operatingProfit: Math.round(quote.marketCap * 0.088),
-        netProfit: Math.round(quote.marketCap * 0.061),
-        eps: Math.round((quote.marketCap * 0.061 / (quote.sharesOutstanding || 1)) * 100) / 100,
-        operatingCashFlow: Math.round(quote.marketCap * 0.068),
-        capex: Math.round(quote.marketCap * 0.020),
-        freeCashFlow: Math.round(quote.marketCap * 0.048),
-        totalAssets: Math.round(quote.marketCap * 0.58),
-        totalEquity: Math.round(quote.marketCap * 0.31),
-        totalDebt: isFinancialSector ? Math.round(quote.marketCap * 1.1) : Math.round(quote.marketCap * 0.085),
-        cashAndInvestments: Math.round(quote.marketCap * 0.08),
-        currentAssets: Math.round(quote.marketCap * 0.25),
-        currentLiabilities: Math.round(quote.marketCap * 0.13),
-        inventory: Math.round(quote.marketCap * 0.038),
-        receivables: Math.round(quote.marketCap * 0.055),
-        payables: Math.round(quote.marketCap * 0.048),
-        sharesCount: quote.sharesOutstanding,
-        dividendPerShare: Math.round((quote.currentPrice * 0.012) * 10) / 10
-      },
-      {
-        year: 'FY24',
-        revenue: Math.round(quote.marketCap * 0.32),
-        ebitda: Math.round(quote.marketCap * 0.091),
-        operatingProfit: Math.round(quote.marketCap * 0.076),
-        netProfit: Math.round(quote.marketCap * 0.052),
-        eps: Math.round((quote.marketCap * 0.052 / (quote.sharesOutstanding || 1)) * 100) / 100,
-        operatingCashFlow: Math.round(quote.marketCap * 0.058),
-        capex: Math.round(quote.marketCap * 0.018),
-        freeCashFlow: Math.round(quote.marketCap * 0.040),
-        totalAssets: Math.round(quote.marketCap * 0.52),
-        totalEquity: Math.round(quote.marketCap * 0.27),
-        totalDebt: isFinancialSector ? Math.round(quote.marketCap * 1.05) : Math.round(quote.marketCap * 0.09),
-        cashAndInvestments: Math.round(quote.marketCap * 0.07),
-        currentAssets: Math.round(quote.marketCap * 0.22),
-        currentLiabilities: Math.round(quote.marketCap * 0.12),
-        inventory: Math.round(quote.marketCap * 0.035),
-        receivables: Math.round(quote.marketCap * 0.05),
-        payables: Math.round(quote.marketCap * 0.045),
-        sharesCount: quote.sharesOutstanding,
-        dividendPerShare: Math.round((quote.currentPrice * 0.010) * 10) / 10
-      }
-    ];
+    const isFinancialSector = sector.includes('Bank') || sector.includes('Finance') || sector.includes('Insurance');
 
     const currentYear = history[0];
-    const prevYear = history[1];
-    const y3Year = history[2];
+    const prevYear: FinancialYearData | undefined = history[1];
+    const y3Year: FinancialYearData | undefined = history[2];
 
-    // Ratios
-    const roe = currentYear.totalEquity === 0 ? 15 : Math.round((currentYear.netProfit / currentYear.totalEquity) * 1000) / 10;
+    // Ratios computed only from the real current year.
+    const roe = currentYear.totalEquity > 0 ? Math.round((currentYear.netProfit / currentYear.totalEquity) * 1000) / 10 : null;
     const capitalEmployed = currentYear.totalAssets - currentYear.currentLiabilities;
-    const roce = capitalEmployed === 0 ? 18 : Math.round((currentYear.operatingProfit / capitalEmployed) * 1000) / 10;
-    const roa = currentYear.totalAssets === 0 ? 8 : Math.round((currentYear.netProfit / currentYear.totalAssets) * 1000) / 10;
+    const roce = capitalEmployed > 0 ? Math.round((currentYear.operatingProfit / capitalEmployed) * 1000) / 10 : null;
+    const roa = currentYear.totalAssets > 0 ? Math.round((currentYear.netProfit / currentYear.totalAssets) * 1000) / 10 : null;
 
-    const opMargin = currentYear.revenue === 0 ? 20 : Math.round((currentYear.operatingProfit / currentYear.revenue) * 1000) / 10;
-    const netMargin = currentYear.revenue === 0 ? 15 : Math.round((currentYear.netProfit / currentYear.revenue) * 1000) / 10;
-    const grossMargin = currentYear.revenue === 0 ? 35 : Math.round((currentYear.ebitda / currentYear.revenue) * 1000) / 10;
+    const opMargin = currentYear.revenue > 0 ? Math.round((currentYear.operatingProfit / currentYear.revenue) * 1000) / 10 : null;
+    const netMargin = currentYear.revenue > 0 ? Math.round((currentYear.netProfit / currentYear.revenue) * 1000) / 10 : null;
+    const grossMargin = currentYear.revenue > 0 ? Math.round((currentYear.ebitda / currentYear.revenue) * 1000) / 10 : null;
 
-    // Growth rates
-    const revYoY = prevYear.revenue === 0 ? 0 : Math.round(((currentYear.revenue - prevYear.revenue) / prevYear.revenue) * 1000) / 10;
-    const profitYoY = prevYear.netProfit === 0 ? 0 : Math.round(((currentYear.netProfit - prevYear.netProfit) / prevYear.netProfit) * 1000) / 10;
-    const rev3YrCAGR = y3Year.revenue === 0 ? 12 : Math.round((Math.pow(currentYear.revenue / y3Year.revenue, 1 / 2) - 1) * 1000) / 10;
-    const profit3YrCAGR = y3Year.netProfit === 0 ? 14 : Math.round((Math.pow(currentYear.netProfit / y3Year.netProfit, 1 / 2) - 1) * 1000) / 10;
+    // Growth requires a prior real year — null if we only have one year.
+    const revYoY = prevYear && prevYear.revenue > 0 ? Math.round(((currentYear.revenue - prevYear.revenue) / prevYear.revenue) * 1000) / 10 : null;
+    const profitYoY = prevYear && prevYear.netProfit > 0 ? Math.round(((currentYear.netProfit - prevYear.netProfit) / prevYear.netProfit) * 1000) / 10 : null;
+    const rev3YrCAGR = y3Year && y3Year.revenue > 0 ? Math.round((Math.pow(currentYear.revenue / y3Year.revenue, 1 / 2) - 1) * 1000) / 10 : null;
+    const profit3YrCAGR = y3Year && y3Year.netProfit > 0 ? Math.round((Math.pow(currentYear.netProfit / y3Year.netProfit, 1 / 2) - 1) * 1000) / 10 : null;
 
-    // Valuation
-    const pe = currentYear.eps === 0 ? 25 : Math.round((quote.currentPrice / currentYear.eps) * 10) / 10;
-    const peg = profitYoY === 0 ? 1.5 : Math.round((pe / Math.max(1, profitYoY)) * 100) / 100;
-    const bookValuePerShare = currentYear.totalEquity / (quote.sharesOutstanding || 1);
-    const pb = bookValuePerShare === 0 ? 3 : Math.round((quote.currentPrice / bookValuePerShare) * 100) / 100;
-    const evToEbitda = currentYear.ebitda === 0 ? 18 : Math.round(((quote.marketCap + currentYear.totalDebt - currentYear.cashAndInvestments) / currentYear.ebitda) * 10) / 10;
-    const ps = currentYear.revenue === 0 ? 3 : Math.round((quote.marketCap / currentYear.revenue) * 100) / 100;
-    const pcf = currentYear.operatingCashFlow === 0 ? 20 : Math.round((quote.marketCap / currentYear.operatingCashFlow) * 10) / 10;
-    const dividendYield = quote.currentPrice === 0 ? 1.2 : Math.round(((currentYear.dividendPerShare) / quote.currentPrice) * 1000) / 10;
+    // Valuation requires real EPS and current price.
+    const eps = currentYear.eps > 0 ? currentYear.eps : null;
+    const pe = eps !== null ? Math.round((quote.currentPrice / eps) * 10) / 10 : null;
+    const peg = pe !== null && profitYoY !== null && profitYoY !== 0 ? Math.round((pe / Math.abs(profitYoY)) * 100) / 100 : null;
+    const bookValuePerShare = currentYear.sharesCount > 0 ? currentYear.totalEquity / currentYear.sharesCount : null;
+    const pb = bookValuePerShare !== null && bookValuePerShare > 0 ? Math.round((quote.currentPrice / bookValuePerShare) * 100) / 100 : null;
+    const evToEbitda = currentYear.ebitda > 0 && quote.marketCap !== null
+      ? Math.round(((quote.marketCap + currentYear.totalDebt - currentYear.cashAndInvestments) / currentYear.ebitda) * 10) / 10
+      : null;
+    const ps = currentYear.revenue > 0 && quote.marketCap !== null ? Math.round((quote.marketCap / currentYear.revenue) * 100) / 100 : null;
+    const pcf = currentYear.operatingCashFlow > 0 && quote.marketCap !== null ? Math.round((quote.marketCap / currentYear.operatingCashFlow) * 10) / 10 : null;
+    const dividendYield = currentYear.dividendPerShare > 0 ? Math.round((currentYear.dividendPerShare / quote.currentPrice) * 1000) / 10 : null;
 
-    // Balance sheet
-    const debtToEquity = currentYear.totalEquity === 0 ? 0 : Math.round((currentYear.totalDebt / currentYear.totalEquity) * 100) / 100;
-    const interestCoverage = isFinancialSector ? 0 : 14.5;
-    const currentRatio = currentYear.currentLiabilities === 0 ? 2.0 : Math.round((currentYear.currentAssets / currentYear.currentLiabilities) * 100) / 100;
-    const quickRatio = currentYear.currentLiabilities === 0 ? 1.5 : Math.round(((currentYear.currentAssets - currentYear.inventory) / currentYear.currentLiabilities) * 100) / 100;
+    // Balance sheet.
+    const debtToEquity = currentYear.totalEquity > 0 ? Math.round((currentYear.totalDebt / currentYear.totalEquity) * 100) / 100 : null;
+    const currentRatio = currentYear.currentLiabilities > 0 ? Math.round((currentYear.currentAssets / currentYear.currentLiabilities) * 100) / 100 : null;
+    const quickRatio = currentYear.currentLiabilities > 0 ? Math.round(((currentYear.currentAssets - currentYear.inventory) / currentYear.currentLiabilities) * 100) / 100 : null;
     const netDebt = currentYear.totalDebt - currentYear.cashAndInvestments;
-    const fcfYield = quote.marketCap === 0 ? 3 : Math.round((currentYear.freeCashFlow / quote.marketCap) * 1000) / 10;
+    const fcfYield = quote.marketCap !== null && quote.marketCap > 0 ? Math.round((currentYear.freeCashFlow / quote.marketCap) * 1000) / 10 : null;
 
-    // Framework evaluations
     const piotroski = FrameworkEngines.calculatePiotroski(history);
-    const canslim = FrameworkEngines.calculateCANSLIM(quote, history, 80);
+    const canslim = FrameworkEngines.calculateCANSLIM(quote, history, technicalScore);
     const buffett = FrameworkEngines.calculateBuffett(quote, history, roe);
-    const graham = FrameworkEngines.calculateGraham(quote, currentYear.eps, bookValuePerShare, currentRatio);
+    const graham = FrameworkEngines.calculateGraham(quote, eps, bookValuePerShare, currentRatio, history.length);
     const peterLynch = FrameworkEngines.calculatePeterLynch(quote, pe, profitYoY);
 
-    const valuationVerdict = pe < 20 && peg < 1.3 ? 'Potentially Low / Undervalued' : pe > 40 || peg > 2.5 ? 'Elevated / Expensive' : 'Fair Valuation';
+    const valuationVerdict: FullFundamentalAnalysis['valuation']['valuationVerdict'] =
+      pe === null
+        ? 'Fair Valuation'
+        : pe < 20 && (peg === null || peg < 1.3)
+          ? 'Potentially Low / Undervalued'
+          : pe > 40 || (peg !== null && peg > 2.5)
+            ? 'Elevated / Expensive'
+            : 'Fair Valuation';
+
+    const notAvailable = (label: string) => `${label}: Data unavailable — insufficient real financial data.`;
 
     return {
       symbol: quote.symbol,
-      sector: quote.sector,
-      industry: quote.industry,
+      sector: quote.sector ?? 'Unclassified',
+      industry: quote.industry ?? 'Unclassified',
       isFinancialSector,
       profitability: {
-        roe,
-        roce,
-        roa,
-        operatingMargin: opMargin,
-        netMargin,
-        grossMargin,
-        roe3YrAvg: Math.round(roe * 0.96 * 10) / 10,
-        roe5YrAvg: Math.round(roe * 0.92 * 10) / 10,
-        profitabilityScore: Math.min(95, Math.round(roe * 2.2 + opMargin * 1.2)),
-        sectorComparison: `ROE is ${roe}% vs sector average ~15.5%.`
+        roe: roe ?? 0,
+        roce: roce ?? 0,
+        roa: roa ?? 0,
+        operatingMargin: opMargin ?? 0,
+        netMargin: netMargin ?? 0,
+        grossMargin: grossMargin ?? 0,
+        roe3YrAvg: 0, // requires 3 real years of equity/profit — not synthesized
+        roe5YrAvg: 0,
+        profitabilityScore: roe !== null && opMargin !== null ? Math.min(95, Math.max(0, Math.round(roe * 2.2 + opMargin * 1.2))) : 0,
+        sectorComparison: roe !== null
+          ? `ROE is ${roe}% based on ${currentYear.year} filed financials.`
+          : notAvailable('Sector comparison')
       },
       growth: {
-        revenueYoY: revYoY,
-        revenue3YrCAGR: rev3YrCAGR,
-        revenue5YrCAGR: Math.round(rev3YrCAGR * 0.95 * 10) / 10,
-        netProfitYoY: profitYoY,
-        netProfit3YrCAGR: profit3YrCAGR,
-        netProfit5YrCAGR: Math.round(profit3YrCAGR * 0.92 * 10) / 10,
-        epsYoY: profitYoY,
-        eps3YrCAGR: profit3YrCAGR,
-        growthScore: Math.min(95, Math.round(profitYoY * 2.5 + revYoY * 1.5)),
-        growthTrajectory: profitYoY > 15 ? 'Accelerating' : profitYoY > 8 ? 'Steady Growth' : 'Decelerating'
+        revenueYoY: revYoY ?? 0,
+        revenue3YrCAGR: rev3YrCAGR ?? 0,
+        revenue5YrCAGR: 0,
+        netProfitYoY: profitYoY ?? 0,
+        netProfit3YrCAGR: profit3YrCAGR ?? 0,
+        netProfit5YrCAGR: 0,
+        epsYoY: profitYoY ?? 0,
+        eps3YrCAGR: profit3YrCAGR ?? 0,
+        growthScore: profitYoY !== null && revYoY !== null ? Math.min(95, Math.max(0, Math.round(profitYoY * 2.5 + revYoY * 1.5))) : 0,
+        growthTrajectory: profitYoY === null ? 'Contracting' : profitYoY > 15 ? 'Accelerating' : profitYoY > 8 ? 'Steady Growth' : profitYoY >= 0 ? 'Decelerating' : 'Contracting'
       },
       valuation: {
-        pe,
-        forwardPe: Math.round(pe * 0.88 * 10) / 10,
-        peg,
-        pb,
-        evToEbitda,
-        priceToSales: ps,
-        priceToCashFlow: pcf,
-        dividendYield,
-        sectorMedianPe: 26.5,
-        historical5YrPe: 27.2,
-        valuationScore: peg < 1.5 ? 78 : 55,
+        pe: pe ?? 0,
+        forwardPe: undefined,
+        peg: peg ?? 0,
+        pb: pb ?? 0,
+        evToEbitda: evToEbitda ?? 0,
+        priceToSales: ps ?? 0,
+        priceToCashFlow: pcf ?? 0,
+        dividendYield: dividendYield ?? 0,
+        sectorMedianPe: 0, // requires a real sector-peer dataset — not synthesized
+        historical5YrPe: 0,
+        valuationScore: peg !== null ? (peg < 1.5 ? 78 : 55) : 0,
         valuationVerdict,
-        explanation: `Trailing P/E is ${pe}x with PEG of ${peg}. ${valuationVerdict}. Never consider a stock purely cheap based on P/E without evaluating growth and asset quality.`
+        explanation: pe !== null
+          ? `Trailing P/E is ${pe}x${peg !== null ? ` with PEG of ${peg}` : ''}, based on ${currentYear.year} filed EPS. ${valuationVerdict}. Never consider a stock purely cheap based on P/E without evaluating growth and asset quality.`
+          : notAvailable('Valuation')
       },
       balanceSheet: {
         totalDebtCrores: currentYear.totalDebt,
-        debtToEquity,
-        interestCoverage,
-        currentRatio,
-        quickRatio,
+        debtToEquity: debtToEquity ?? 0,
+        interestCoverage: 0, // requires real interest-expense line item — not synthesized
+        currentRatio: currentRatio ?? 0,
+        quickRatio: quickRatio ?? 0,
         cashAndEquivalentsCrores: currentYear.cashAndInvestments,
         netDebtCrores: netDebt,
         freeCashFlowCrores: currentYear.freeCashFlow,
-        fcfYield,
-        cashConversionCycleDays: isFinancialSector ? 0 : 38,
-        leverageCategory: isFinancialSector ? 'Moderate Leverage' : debtToEquity < 0.3 ? 'Low Leverage (Healthy)' : debtToEquity < 0.8 ? 'Moderate Leverage' : 'High Leverage (Caution)',
-        solvencyScore: isFinancialSector ? 82 : debtToEquity < 0.3 ? 92 : 70
+        fcfYield: fcfYield ?? 0,
+        cashConversionCycleDays: 0,
+        leverageCategory: debtToEquity === null ? 'Moderate Leverage' : debtToEquity < 0.3 ? 'Low Leverage (Healthy)' : debtToEquity < 0.8 ? 'Moderate Leverage' : 'High Leverage (Caution)',
+        solvencyScore: debtToEquity === null ? 0 : debtToEquity < 0.3 ? 85 : debtToEquity < 0.8 ? 65 : 40
       },
       earningsQuality: {
-        cfoToNetProfitRatio: Math.round((currentYear.operatingCashFlow / (currentYear.netProfit || 1)) * 100) / 100,
-        accrualStatus: currentYear.operatingCashFlow >= currentYear.netProfit * 0.9 ? 'Healthy Cash Conversion' : 'Accrual Heavy / Divergence Detected',
-        exceptionalItemsNotes: 'No significant non-recurring exceptional gains distorting operating line.',
-        flag: 'High quality operating cash flow backing net reported earnings.'
+        cfoToNetProfitRatio: currentYear.netProfit !== 0 ? Math.round((currentYear.operatingCashFlow / currentYear.netProfit) * 100) / 100 : 0,
+        accrualStatus: currentYear.netProfit > 0 && currentYear.operatingCashFlow >= currentYear.netProfit * 0.9 ? 'Healthy Cash Conversion' : 'Accrual Heavy / Divergence Detected',
+        exceptionalItemsNotes: `Based on ${currentYear.year} filed figures — no adjustment made for one-off items unless separately disclosed.`,
+        flag: currentYear.netProfit > 0 && currentYear.operatingCashFlow >= currentYear.netProfit * 0.9
+          ? 'Operating cash flow is consistent with reported net earnings.'
+          : 'Operating cash flow diverges from reported net earnings — worth further review.'
       },
       piotroski,
       canslim,

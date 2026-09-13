@@ -1,18 +1,43 @@
-import { StockQuote, OHLCV } from '../../types/stock';
+import { OHLCV } from '../../types/stock';
 import { TechnicalEngine } from './technicalEngine';
 import { FundamentalEngine } from './fundamentalEngine';
 import { SmartMoneyEngine } from './smartMoneyEngine';
 import { ScoringEngine } from './scoringEngine';
 import { ScreenerPresetType, ScreenerResultItem, CustomScreenerConfig } from '../../types/screeners';
-import { FullTechnicalAnalysis } from '../../types/technicals';
-import { FullFundamentalAnalysis } from '../../types/fundamentals';
-import { SmartMoneyAnalysis } from '../../types/smartMoney';
-import { MultiFactorScore } from '../../types/scoring';
 import { IDataProvider } from '../providers/IDataProvider';
 
 export class ScreenerEngine {
+  // Fetching full price history for the entire NEPSE universe one-by-one
+  // against the real API is what caused this to time out — process in
+  // bounded-concurrency batches instead of fully sequential or unbounded.
+  private static readonly CONCURRENCY = 8;
+
+  private static async mapWithConcurrency<T, R>(
+    items: T[],
+    limit: number,
+    fn: (item: T) => Promise<R>
+  ): Promise<R[]> {
+    const results: R[] = new Array(items.length);
+    let cursor = 0;
+
+    async function worker() {
+      while (cursor < items.length) {
+        const index = cursor++;
+        results[index] = await fn(items[index]);
+      }
+    }
+
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+
+    return results;
+  }
+
   /**
-   * Executes a preset screener or custom configuration against the universe
+   * Executes a preset screener or custom configuration against the
+   * universe. Stocks with insufficient real data for the criteria being
+   * screened are excluded from the results rather than matched on
+   * fabricated/defaulted values — this mirrors "remove stocks with
+   * insufficient critical data" rather than inventing a score for them.
    */
   public static async runScreener(
     provider: IDataProvider,
@@ -20,15 +45,37 @@ export class ScreenerEngine {
     customConfig?: CustomScreenerConfig
   ): Promise<ScreenerResultItem[]> {
     const allStocks = await provider.getAllStocks();
-    const results: ScreenerResultItem[] = [];
 
-    for (const quote of allStocks) {
-      const candles = await provider.getHistoricalCandles(quote.symbol);
-      const shareholding = await provider.getShareholdingPattern(quote.symbol);
-      const deals = await provider.getBulkBlockDeals(quote.symbol);
+    const perStock = await this.mapWithConcurrency(allStocks, this.CONCURRENCY, async quote => {
+      const [candles, shareholding, deals] = await Promise.all([
+        provider.getHistoricalCandles(quote.symbol),
+        provider.getShareholdingPattern(quote.symbol),
+        provider.getBulkBlockDeals(quote.symbol)
+      ]);
+
+      return this.evaluateStock(quote, candles, shareholding, deals, preset, customConfig);
+    });
+
+    return perStock
+      .filter((r): r is ScreenerResultItem => r !== null)
+      .sort((a, b) => b.score.overallScore - a.score.overallScore);
+  }
+
+  private static evaluateStock(
+    quote: import('../../types/stock').StockQuote,
+    candles: OHLCV[],
+    shareholding: import('../../types/stock').ShareholdingPattern[],
+    deals: import('../../types/stock').BulkBlockDeal[],
+    preset: ScreenerPresetType,
+    customConfig?: CustomScreenerConfig
+  ): ScreenerResultItem | null {
+      // Not enough real price history to compute technicals at all — skip.
+      if (candles.length < 15) return null;
 
       const technicals = TechnicalEngine.performFullAnalysis(quote, candles);
-      const fundamentals = FundamentalEngine.performFullAnalysis(quote);
+      // FundamentalEngine currently needs real annual financial-statement
+      // data (not wired up yet) — pass empty; it will honestly return null.
+      const fundamentals = FundamentalEngine.performFullAnalysis(quote, [], technicals.overallTechnicalScore);
       const smartMoney = SmartMoneyEngine.performAnalysis(quote, shareholding, deals);
       const score = ScoringEngine.calculateScore(quote, technicals, fundamentals, smartMoney);
 
@@ -36,11 +83,12 @@ export class ScreenerEngine {
       const matchedCriteria: string[] = [];
 
       switch (preset) {
+
         case 'breakout':
-          if (technicals.breakout.isBreakout || quote.currentPrice >= quote.fiftyTwoWeekHigh * 0.96) {
+          if (technicals.breakout.isBreakout || (quote.fiftyTwoWeekHigh !== null && quote.currentPrice >= quote.fiftyTwoWeekHigh * 0.96)) {
             matched = true;
             matchedCriteria.push('Price testing / breaking resistance');
-            if (quote.volumeRatio >= 1.2) matchedCriteria.push(`Volume expansion (${quote.volumeRatio}x avg)`);
+            if ((quote.volumeRatio ?? 0) >= 1.2) matchedCriteria.push(`Volume expansion (${quote.volumeRatio}x avg)`);
             if (technicals.macd.histogram > 0) matchedCriteria.push('Bullish MACD momentum');
           }
           break;
@@ -48,36 +96,32 @@ export class ScreenerEngine {
         case 'support_rebound':
           if (technicals.supportResistance.signal === 'AT_SUPPORT' || technicals.supportResistance.signal === 'NEAR_SUPPORT' || technicals.rsi.value <= 45) {
             matched = true;
-            matchedCriteria.push(`Near key support level (₹${technicals.supportResistance.support1})`);
+            matchedCriteria.push(`Near key support level (Rs. ${technicals.supportResistance.support1})`);
             matchedCriteria.push(`RSI at ${technicals.rsi.value}`);
             if (technicals.candlestickPatterns.some(p => p.type === 'Bullish')) matchedCriteria.push('Bullish candlestick reversal candle');
           }
           break;
 
         case 'smart_money_accumulation':
-          if (smartMoney.smartMoneyClassification === 'Accumulation' || (smartMoney.fiiChangeQoQ + smartMoney.diiChangeQoQ) > 0.4) {
+          if (smartMoney && (smartMoney.smartMoneyClassification === 'Accumulation' || (smartMoney.foreignChangeQoQ + smartMoney.institutionalChangeQoQ) > 0.4)) {
             matched = true;
-            matchedCriteria.push(`Institutional stake increased +${(smartMoney.fiiChangeQoQ + smartMoney.diiChangeQoQ).toFixed(2)}% QoQ`);
-            matchedCriteria.push(`High delivery percentage (${quote.deliveryPercentage}%)`);
-            matchedCriteria.push(`Zero promoter pledging (${smartMoney.latestPromoterPledged}%)`);
+            matchedCriteria.push(`Institutional stake increased +${(smartMoney.foreignChangeQoQ + smartMoney.institutionalChangeQoQ).toFixed(2)}% QoQ`);
+            matchedCriteria.push(`Zero/low promoter pledging (${smartMoney.latestPromoterPledged}%)`);
           }
           break;
 
         case 'piotroski_high':
-          if (fundamentals.piotroski.score >= 8) {
+          if (fundamentals && fundamentals.piotroski.score >= 8) {
             matched = true;
             matchedCriteria.push(`Piotroski Score: ${fundamentals.piotroski.score}/9 (Top Tier Quality)`);
-            matchedCriteria.push('Positive CFO and ROA expansion');
-            matchedCriteria.push('Healthy balance sheet leverage');
           }
           break;
 
         case 'low_debt_growth':
-          if (fundamentals.balanceSheet.debtToEquity < 0.4 && fundamentals.growth.netProfitYoY >= 12) {
+          if (fundamentals && fundamentals.balanceSheet.debtToEquity < 0.4 && fundamentals.growth.netProfitYoY >= 12) {
             matched = true;
             matchedCriteria.push(`Low Debt-to-Equity (${fundamentals.balanceSheet.debtToEquity})`);
             matchedCriteria.push(`Profit growth: +${fundamentals.growth.netProfitYoY}% YoY`);
-            matchedCriteria.push(`ROE: ${fundamentals.profitability.roe}%`);
           }
           break;
 
@@ -85,32 +129,27 @@ export class ScreenerEngine {
           if (technicals.rsi.value <= 35 || technicals.rsi.classification === 'OVERSOLD' || technicals.rsi.classification === 'NEAR_OVERSOLD') {
             matched = true;
             matchedCriteria.push(`RSI 14 oversold/near oversold at ${technicals.rsi.value}`);
-            matchedCriteria.push('Potential mean-reversion technical setup');
           }
           break;
 
         case 'high_dividend':
-          if (fundamentals.valuation.dividendYield >= 1.0) {
+          if (fundamentals && fundamentals.valuation.dividendYield >= 1.0) {
             matched = true;
             matchedCriteria.push(`Dividend Yield: ${fundamentals.valuation.dividendYield}%`);
-            matchedCriteria.push('Consistent payout track record');
           }
           break;
 
         case 'buffett_compounders':
-          if (fundamentals.buffett.buffettQualityScore >= 80 && fundamentals.profitability.roe >= 18) {
+          if (fundamentals && fundamentals.buffett.buffettQualityScore >= 80 && fundamentals.profitability.roe >= 18) {
             matched = true;
             matchedCriteria.push(`Buffett Quality Score: ${fundamentals.buffett.buffettQualityScore}/100`);
-            matchedCriteria.push(`10-Yr Avg ROE: ${fundamentals.buffett.roeTenYearAverage}%`);
-            matchedCriteria.push('Durable economic moat and high cash conversion');
           }
           break;
 
         case 'canslim_leaders':
-          if (fundamentals.canslim.totalScore >= 75) {
+          if (fundamentals && fundamentals.canslim.totalScore >= 75) {
             matched = true;
             matchedCriteria.push(`CANSLIM Score: ${fundamentals.canslim.totalScore}/100`);
-            matchedCriteria.push('Quarterly earnings & institutional leadership');
           }
           break;
 
@@ -118,31 +157,28 @@ export class ScreenerEngine {
           if (technicals.adx.adx >= 25 && technicals.adx.trendDirection === 'Bullish Dominance') {
             matched = true;
             matchedCriteria.push(`ADX at ${technicals.adx.adx} (Strong Trend)`);
-            matchedCriteria.push('Bullish +DI dominance');
           }
           break;
 
         case 'low_volatility':
-          if (quote.beta < 0.85) {
+          if (quote.beta !== null && quote.beta < 0.85) {
             matched = true;
             matchedCriteria.push(`Low Beta (${quote.beta})`);
-            matchedCriteria.push('Historically defensive during market corrections');
           }
           break;
 
         case 'value_gems':
-          if (fundamentals.valuation.peg < 1.3 || fundamentals.valuation.pe < 22) {
+          if (fundamentals && (fundamentals.valuation.peg < 1.3 || fundamentals.valuation.pe < 22)) {
             matched = true;
             matchedCriteria.push(`Attractive PEG (${fundamentals.valuation.peg})`);
             matchedCriteria.push(`P/E: ${fundamentals.valuation.pe}x`);
-            matchedCriteria.push(`ROE: ${fundamentals.profitability.roe}%`);
           }
           break;
 
-        case 'fii_buying_spree':
-          if (smartMoney.fiiChangeQoQ >= 0.5) {
+        case 'foreign_buying_spree':
+          if (smartMoney && smartMoney.foreignChangeQoQ >= 0.5) {
             matched = true;
-            matchedCriteria.push(`FII ownership increased by +${smartMoney.fiiChangeQoQ}% in latest quarter`);
+            matchedCriteria.push(`Foreign ownership increased by +${smartMoney.foreignChangeQoQ}% in latest quarter`);
           }
           break;
 
@@ -150,7 +186,6 @@ export class ScreenerEngine {
           if (technicals.movingAverages.crossSignals.goldenCrossDetected) {
             matched = true;
             matchedCriteria.push('50-day SMA is above 200-day SMA');
-            matchedCriteria.push('Macro structural uptrend confirmed');
           }
           break;
 
@@ -159,15 +194,13 @@ export class ScreenerEngine {
             let passAll = true;
             for (const rule of customConfig.rules) {
               const val = this.extractFieldValue(rule.field, quote, technicals, fundamentals, smartMoney, score);
-              if (!this.evaluateCondition(val, rule.operator, rule.value, rule.secondValue)) {
+              if (val === null || !this.evaluateCondition(val, rule.operator, rule.value, rule.secondValue)) {
                 passAll = false;
                 break;
               }
               matchedCriteria.push(`${rule.field} ${rule.operator} ${rule.value}`);
             }
             matched = passAll;
-          } else {
-            matched = true;
           }
           break;
 
@@ -175,24 +208,16 @@ export class ScreenerEngine {
           if (score.overallScore >= 75) {
             matched = true;
             matchedCriteria.push(`Overall Research Score: ${score.overallScore}/100`);
-            matchedCriteria.push(`ROE: ${fundamentals.profitability.roe}%`);
             matchedCriteria.push(`Technical Signal: ${technicals.overallTechnicalSignal}`);
           }
           break;
       }
 
-      if (matched) {
-        results.push({
-          quote,
-          technicals,
-          fundamentals,
-          score,
-          matchedCriteria
-        });
-      }
-    }
-
-    return results.sort((a, b) => b.score.overallScore - a.score.overallScore);
+      // A stock that matched purely on real technicals is included even
+      // when fundamentals are unavailable (a known, disclosed gap) — we
+      // never fabricate a fundamentals object just to satisfy the shape;
+      // callers must handle `fundamentals: null` in the result.
+      return matched ? { quote, technicals, fundamentals, score, matchedCriteria } : null;
   }
 
   public static parseNaturalLanguageQuery(query: string): CustomScreenerConfig {
@@ -218,7 +243,7 @@ export class ScreenerEngine {
     }
 
     if (q.includes('breakout') || q.includes('high volume')) {
-      rules.push({ field: 'volumeRatio', operator: '>=', value: 1.2 });
+      rules.push({ field: 'volumeratio', operator: '>=', value: 1.2 });
     }
 
     if (q.includes('peg') || q.includes('value') || q.includes('cheap')) {
@@ -229,18 +254,18 @@ export class ScreenerEngine {
       id: `ai-screener-${Date.now()}`,
       name: `AI Query: "${query}"`,
       description: `Structured filter translated from: "${query}"`,
-      rules: rules.length > 0 ? rules : [{ field: 'overallScore', operator: '>=', value: 75 }]
+      rules: rules.length > 0 ? rules : [{ field: 'overallscore', operator: '>=', value: 75 }]
     };
   }
 
   private static extractFieldValue(
     field: string,
-    quote: StockQuote,
-    technicals: FullTechnicalAnalysis,
-    fundamentals: FullFundamentalAnalysis,
-    smartMoney: SmartMoneyAnalysis,
-    score: MultiFactorScore
-  ): any {
+    quote: import('../../types/stock').StockQuote,
+    technicals: import('../../types/technicals').FullTechnicalAnalysis,
+    fundamentals: import('../../types/fundamentals').FullFundamentalAnalysis | null,
+    smartMoney: import('../../types/smartMoney').SmartMoneyAnalysis | null,
+    score: import('../../types/scoring').MultiFactorScore
+  ): number | null {
     switch (field.toLowerCase()) {
       case 'price': return quote.currentPrice;
       case 'marketcap': return quote.marketCap;
@@ -248,22 +273,21 @@ export class ScreenerEngine {
       case 'beta': return quote.beta;
       case 'rsi': return technicals.rsi.value;
       case 'adx': return technicals.adx.adx;
-      case 'roe': return fundamentals.profitability.roe;
-      case 'roce': return fundamentals.profitability.roce;
-      case 'pe': return fundamentals.valuation.pe;
-      case 'peg': return fundamentals.valuation.peg;
-      case 'pb': return fundamentals.valuation.pb;
-      case 'debttoequity': return fundamentals.balanceSheet.debtToEquity;
-      case 'piotroski': return fundamentals.piotroski.score;
-      case 'freecashflow': return fundamentals.balanceSheet.freeCashFlowCrores;
-      case 'fiichange': return smartMoney.fiiChangeQoQ;
+      case 'roe': return fundamentals?.profitability.roe ?? null;
+      case 'roce': return fundamentals?.profitability.roce ?? null;
+      case 'pe': return fundamentals?.valuation.pe ?? null;
+      case 'peg': return fundamentals?.valuation.peg ?? null;
+      case 'pb': return fundamentals?.valuation.pb ?? null;
+      case 'debttoequity': return fundamentals?.balanceSheet.debtToEquity ?? null;
+      case 'piotroski': return fundamentals?.piotroski.score ?? null;
+      case 'freecashflow': return fundamentals?.balanceSheet.freeCashFlowCrores ?? null;
+      case 'foreignchange': return smartMoney?.foreignChangeQoQ ?? null;
       case 'overallscore': return score.overallScore;
-      default: return 0;
+      default: return null;
     }
   }
 
-  private static evaluateCondition(actual: any, operator: string, target: any, secondTarget?: any): boolean {
-    if (actual === undefined || actual === null) return false;
+  private static evaluateCondition(actual: number, operator: string, target: any, secondTarget?: any): boolean {
     switch (operator) {
       case '>': return actual > target;
       case '>=': return actual >= target;

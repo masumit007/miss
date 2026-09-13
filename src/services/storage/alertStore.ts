@@ -8,7 +8,7 @@ const DEFAULT_ALERTS: AlertRule[] = [
     symbol: 'TCS',
     triggerType: 'PRICE_CROSS_ABOVE',
     thresholdValue: 4250,
-    message: 'TCS crosses above ₹4,250 resistance zone.',
+    message: 'TCS crosses above Rs. 4,250 resistance zone.',
     createdAt: '2026-08-28T10:00:00Z',
     status: 'ACTIVE'
   },

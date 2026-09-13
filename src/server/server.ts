@@ -95,7 +95,7 @@ app.get(
         sectoralIndices,
         breadth,
         sectors,
-        fiiDii,
+        institutionalFlows,
         macro,
         status
       ] = await Promise.all([
@@ -122,7 +122,7 @@ app.get(
 
           sectors,
 
-          recentFiiDii: fiiDii,
+          recentInstitutionalFlows: institutionalFlows,
 
           macro,
 
@@ -297,41 +297,15 @@ app.get(
         )
       ]);
 
-      console.log('NABIL DEBUG: quote loaded');
-
-const technicals =
-  TechnicalEngine.performFullAnalysis(
-    quote,
-    candles
-  );
-
-console.log('NABIL DEBUG: technicals loaded');
-
-const fundamentals =
-  FundamentalEngine.performFullAnalysis(
-    quote
-  );
-
-console.log('NABIL DEBUG: fundamentals loaded');
-
-const smartMoney =
-  SmartMoneyEngine.performAnalysis(
-    quote,
-    shareholding,
-    bulkDeals
-  );
-
-console.log('NABIL DEBUG: smart money loaded');
-
-const score =
-  ScoringEngine.calculateScore(
-    quote,
-    technicals,
-    fundamentals,
-    smartMoney
-  );
-
-console.log('NABIL DEBUG: score loaded');
+      // NOTE: `quarterlyResults` (from provider.getQuarterlyResults) is a
+      // different shape than the annual FinancialYearData[] FundamentalEngine
+      // needs (balance sheet + cash flow), and no real annual-financials
+      // source is wired up yet — so we pass [] and the engine returns
+      // "unavailable" fundamentals honestly rather than fabricating them.
+      const technicals = TechnicalEngine.performFullAnalysis(quote, candles);
+      const fundamentals = FundamentalEngine.performFullAnalysis(quote, [], technicals.overallTechnicalScore);
+      const smartMoney = SmartMoneyEngine.performAnalysis(quote, shareholding, bulkDeals);
+      const score = ScoringEngine.calculateScore(quote, technicals, fundamentals, smartMoney);
 
       res.json({
         success: true,
@@ -496,7 +470,9 @@ app.get(
 
       const fundamentals =
         FundamentalEngine.performFullAnalysis(
-          quote
+          quote,
+          [],
+          technicals.overallTechnicalScore
         );
 
       const smartMoney =

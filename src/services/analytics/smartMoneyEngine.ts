@@ -2,57 +2,63 @@ import { StockQuote, ShareholdingPattern, BulkBlockDeal } from '../../types/stoc
 import { SmartMoneyAnalysis } from '../../types/smartMoney';
 
 export class SmartMoneyEngine {
+  /**
+   * Builds an ownership/"smart money" analysis from REAL shareholding
+   * disclosures. Returns null when there's no real shareholding history
+   * for this stock — MISS does not have a legitimate NEPSE ownership data
+   * source wired up yet, so `shareholding` will currently always be empty
+   * and this will always return null. That's the honest answer: no
+   * generic fallback percentages are ever substituted for a real filing.
+   */
   public static performAnalysis(
     quote: StockQuote,
     shareholding: ShareholdingPattern[],
     deals: BulkBlockDeal[]
-  ): SmartMoneyAnalysis {
-    const latest = shareholding[0] || {
-      period: '082/083 Q4',
-      promoterHolding: 51.0,
-      promoterPledged: 0,
-      fiiHolding: 4.8,
-      diiHolding: 18.2,
-      publicHolding: 26.0,
-      otherHolding: 0
-    };
+  ): SmartMoneyAnalysis | null {
+    if (shareholding.length === 0) {
+      return null;
+    }
 
-    const prev = shareholding[1] || latest;
-    const fiiChangeQoQ = Math.round((latest.fiiHolding - prev.fiiHolding) * 100) / 100;
-    const diiChangeQoQ = Math.round((latest.diiHolding - prev.diiHolding) * 100) / 100;
+    const latest = shareholding[0];
+    const prev = shareholding[1] ?? latest;
+
+    const foreignChangeQoQ = Math.round((latest.foreignHolding - prev.foreignHolding) * 100) / 100;
+    const institutionalChangeQoQ = Math.round((latest.institutionalHolding - prev.institutionalHolding) * 100) / 100;
     const promoterChangeQoQ = Math.round((latest.promoterHolding - prev.promoterHolding) * 100) / 100;
 
-    const deliveryPercent = quote.deliveryPercentage || 65.0;
-    const isHighDelivery = deliveryPercent >= 55.0;
-    const isInstiAccumulating = (fiiChangeQoQ + diiChangeQoQ) >= 0.2;
+    // Delivery percentage: only used if the source actually reported one.
+    const deliveryPercent = quote.deliveryPercentage ?? null;
+    const isHighDelivery = deliveryPercent !== null && deliveryPercent >= 55.0;
+    const isInstiAccumulating = (foreignChangeQoQ + institutionalChangeQoQ) >= 0.2;
     const isPledgeLow = latest.promoterPledged < 5.0;
 
     let smartMoneyClassification: SmartMoneyAnalysis['smartMoneyClassification'] = 'Neutral';
-    let score = 65;
+    let score = 50;
     const evidence: string[] = [];
 
     if (isInstiAccumulating && isHighDelivery && isPledgeLow) {
       smartMoneyClassification = 'Accumulation';
-      score = 88;
-      evidence.push(`Combined Mutual Fund / DII stake increased in latest reported quarter.`);
+      score = 85;
+      evidence.push('Combined domestic + foreign institutional stake increased in latest reported quarter.');
       evidence.push(`High delivery percentage (${deliveryPercent}%) indicating positional delivery absorption.`);
       evidence.push(`Zero/minimal promoter pledging (${latest.promoterPledged}%), eliminating pledge liquidation risk.`);
-    } else if (fiiChangeQoQ < -1.0 && diiChangeQoQ < -0.5) {
+    } else if (foreignChangeQoQ < -1.0 && institutionalChangeQoQ < -0.5) {
       smartMoneyClassification = 'Distribution';
-      score = 35;
-      evidence.push(`Institutional stakeholders reduced position by ${(fiiChangeQoQ + diiChangeQoQ).toFixed(2)}% QoQ.`);
-      evidence.push(`Delivery volume expanding on down-days indicating potential institutional distribution.`);
+      score = 30;
+      evidence.push(`Institutional stakeholders reduced position by ${(foreignChangeQoQ + institutionalChangeQoQ).toFixed(2)}% QoQ.`);
     } else {
       smartMoneyClassification = 'Mixed Institutional Signals';
-      score = 62;
-      evidence.push(`Mutual Fund / DII stake is stable at ${latest.diiHolding}%.`);
-      evidence.push(`Delivery percentage is at ${deliveryPercent}%.`);
+      score = 55;
+      evidence.push(`Domestic institutional stake is at ${latest.institutionalHolding}% as of ${latest.period}.`);
+      if (deliveryPercent !== null) {
+        evidence.push(`Delivery percentage is at ${deliveryPercent}%.`);
+      }
     }
 
     if (deals.length > 0) {
       const netBuyDeals = deals.filter(d => d.transactionType === 'BUY');
       if (netBuyDeals.length > 0) {
-        evidence.push(`Recent block deals indicate buying interest from ${netBuyDeals[0].clientName} (Rs. ${netBuyDeals[0].valueCrores} Cr).`);
+        evidence.push(`Recent block deal indicates buying interest from ${netBuyDeals[0].clientName} (Rs. ${netBuyDeals[0].valueCrores} Cr).`);
       }
     }
 
@@ -61,24 +67,26 @@ export class SmartMoneyEngine {
       shareholding,
       latestPromoterHolding: latest.promoterHolding,
       latestPromoterPledged: latest.promoterPledged,
-      latestFiiHolding: latest.fiiHolding,
-      latestDiiHolding: latest.diiHolding,
+      latestForeignHolding: latest.foreignHolding,
+      latestInstitutionalHolding: latest.institutionalHolding,
       latestPublicHolding: latest.publicHolding,
-      fiiChangeQoQ,
-      diiChangeQoQ,
+      foreignChangeQoQ,
+      institutionalChangeQoQ,
       promoterChangeQoQ,
       recentDeals: deals,
       deliveryAnalysis: {
-        deliveryPercentage: deliveryPercent,
-        deliveryVolume: Math.round(quote.volume * (deliveryPercent / 100)),
+        deliveryPercentage: deliveryPercent ?? 0,
+        deliveryVolume: deliveryPercent !== null ? Math.round(quote.volume * (deliveryPercent / 100)) : 0,
         totalVolume: quote.volume,
-        deliveryTrend: isHighDelivery ? 'Increasing Delivery' : 'Stable',
-        interpretation: 'Positional retail and mutual fund absorption'
+        deliveryTrend: deliveryPercent === null ? 'Stable' : isHighDelivery ? 'Increasing Delivery' : 'Stable',
+        interpretation: deliveryPercent !== null
+          ? 'Positional retail and mutual fund absorption'
+          : 'Data unavailable — delivery percentage not sourced for this stock.'
       },
       smartMoneyClassification,
       score,
       evidence,
-      disclaimer: 'Institutional ownership and delivery absorption models are quantitative estimates based on public filings.'
+      disclaimer: 'Institutional ownership and delivery absorption figures are drawn only from real filed shareholding disclosures — this analysis is unavailable for stocks without a real filing history.'
     };
   }
 }

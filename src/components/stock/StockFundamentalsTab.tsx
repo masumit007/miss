@@ -98,7 +98,7 @@ export const StockFundamentalsTab: React.FC<{ fundamentals: FullFundamentalAnaly
           </div>
 
           <div className="space-y-2 text-xs text-slate-300 font-mono">
-            <div className="flex justify-between"><span className="text-slate-400">Graham Number:</span> <strong className="text-white">₹{fundamentals.graham.grahamNumber}</strong></div>
+            <div className="flex justify-between"><span className="text-slate-400">Graham Number:</span> <strong className="text-white">Rs. {fundamentals.graham.grahamNumber}</strong></div>
             <div className="flex justify-between"><span className="text-slate-400">P/E × P/B Multiple:</span> <strong className="text-white">{fundamentals.graham.peTimesPb} (Max 22.5)</strong></div>
             <div className="flex justify-between"><span className="text-slate-400">Current Ratio:</span> <strong className="text-white">{fundamentals.graham.currentRatio}x (Min 2.0x)</strong></div>
           </div>

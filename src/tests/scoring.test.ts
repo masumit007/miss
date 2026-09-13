@@ -15,7 +15,7 @@ describe('ScoringEngine Multi-Factor Calibration (NEPSE)', () => {
     const deals = await provider.getBulkBlockDeals('NABIL');
 
     const tech = TechnicalEngine.performFullAnalysis(quote!, candles);
-    const fund = FundamentalEngine.performFullAnalysis(quote!);
+    const fund = FundamentalEngine.performFullAnalysis(quote!, [], tech.overallTechnicalScore);
     const sm = SmartMoneyEngine.performAnalysis(quote!, shareholding, deals);
 
     const score = ScoringEngine.calculateScore(quote!, tech, fund, sm);

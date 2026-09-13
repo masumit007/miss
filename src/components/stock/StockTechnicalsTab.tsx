@@ -28,22 +28,22 @@ export const StockTechnicalsTab: React.FC<{ technicals: FullTechnicalAnalysis }>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5">
             <span className="text-xs text-slate-400 block font-mono">SMA 20</span>
-            <span className="text-base font-bold font-mono text-white">₹{technicals.movingAverages.sma20.value}</span>
+            <span className="text-base font-bold font-mono text-white">Rs. {technicals.movingAverages.sma20.value}</span>
             <span className="text-[11px] block text-emerald-400">{technicals.movingAverages.sma20.priceVsMa}</span>
           </div>
           <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5">
             <span className="text-xs text-slate-400 block font-mono">SMA 50</span>
-            <span className="text-base font-bold font-mono text-white">₹{technicals.movingAverages.sma50.value}</span>
+            <span className="text-base font-bold font-mono text-white">Rs. {technicals.movingAverages.sma50.value}</span>
             <span className="text-[11px] block text-emerald-400">{technicals.movingAverages.sma50.priceVsMa}</span>
           </div>
           <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5">
             <span className="text-xs text-slate-400 block font-mono">SMA 100</span>
-            <span className="text-base font-bold font-mono text-white">₹{technicals.movingAverages.sma100.value}</span>
+            <span className="text-base font-bold font-mono text-white">Rs. {technicals.movingAverages.sma100.value}</span>
             <span className="text-[11px] block text-emerald-400">{technicals.movingAverages.sma100.priceVsMa}</span>
           </div>
           <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5">
             <span className="text-xs text-slate-400 block font-mono">SMA 200 (Macro)</span>
-            <span className="text-base font-bold font-mono text-white">₹{technicals.movingAverages.sma200.value}</span>
+            <span className="text-base font-bold font-mono text-white">Rs. {technicals.movingAverages.sma200.value}</span>
             <span className="text-[11px] block text-emerald-400">{technicals.movingAverages.sma200.priceVsMa}</span>
           </div>
         </div>
@@ -64,16 +64,16 @@ export const StockTechnicalsTab: React.FC<{ technicals: FullTechnicalAnalysis }>
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="space-y-2 p-3 rounded-xl bg-rose-950/20 border border-rose-500/20">
               <span className="font-bold text-rose-400 font-mono block">RESISTANCE LEVELS</span>
-              <div className="flex justify-between font-mono"><span>R1:</span> <strong className="text-white">₹{technicals.supportResistance.resistance1}</strong></div>
-              <div className="flex justify-between font-mono"><span>R2:</span> <strong className="text-white">₹{technicals.supportResistance.resistance2}</strong></div>
-              <div className="flex justify-between font-mono"><span>R3:</span> <strong className="text-white">₹{technicals.supportResistance.resistance3}</strong></div>
+              <div className="flex justify-between font-mono"><span>R1:</span> <strong className="text-white">Rs. {technicals.supportResistance.resistance1}</strong></div>
+              <div className="flex justify-between font-mono"><span>R2:</span> <strong className="text-white">Rs. {technicals.supportResistance.resistance2}</strong></div>
+              <div className="flex justify-between font-mono"><span>R3:</span> <strong className="text-white">Rs. {technicals.supportResistance.resistance3}</strong></div>
             </div>
 
             <div className="space-y-2 p-3 rounded-xl bg-emerald-950/20 border border-emerald-500/20">
               <span className="font-bold text-emerald-400 font-mono block">SUPPORT LEVELS</span>
-              <div className="flex justify-between font-mono"><span>S1:</span> <strong className="text-white">₹{technicals.supportResistance.support1}</strong></div>
-              <div className="flex justify-between font-mono"><span>S2:</span> <strong className="text-white">₹{technicals.supportResistance.support2}</strong></div>
-              <div className="flex justify-between font-mono"><span>S3:</span> <strong className="text-white">₹{technicals.supportResistance.support3}</strong></div>
+              <div className="flex justify-between font-mono"><span>S1:</span> <strong className="text-white">Rs. {technicals.supportResistance.support1}</strong></div>
+              <div className="flex justify-between font-mono"><span>S2:</span> <strong className="text-white">Rs. {technicals.supportResistance.support2}</strong></div>
+              <div className="flex justify-between font-mono"><span>S3:</span> <strong className="text-white">Rs. {technicals.supportResistance.support3}</strong></div>
             </div>
           </div>
 
@@ -81,11 +81,11 @@ export const StockTechnicalsTab: React.FC<{ technicals: FullTechnicalAnalysis }>
           <div className="space-y-2 pt-2 border-t border-white/5">
             <span className="text-xs font-semibold text-slate-300 font-mono">Fibonacci Swing Levels:</span>
             <div className="grid grid-cols-5 gap-1.5 text-center text-[11px] font-mono">
-              <div className="p-1.5 rounded bg-slate-900/60 border border-white/5">23.6%: ₹{technicals.supportResistance.fibonacciLevels.fib236}</div>
-              <div className="p-1.5 rounded bg-slate-900/60 border border-white/5">38.2%: ₹{technicals.supportResistance.fibonacciLevels.fib382}</div>
-              <div className="p-1.5 rounded bg-slate-900/60 border border-white/5">50.0%: ₹{technicals.supportResistance.fibonacciLevels.fib500}</div>
-              <div className="p-1.5 rounded bg-slate-900/60 border border-white/5">61.8%: ₹{technicals.supportResistance.fibonacciLevels.fib618}</div>
-              <div className="p-1.5 rounded bg-slate-900/60 border border-white/5">78.6%: ₹{technicals.supportResistance.fibonacciLevels.fib786}</div>
+              <div className="p-1.5 rounded bg-slate-900/60 border border-white/5">23.6%: Rs. {technicals.supportResistance.fibonacciLevels.fib236}</div>
+              <div className="p-1.5 rounded bg-slate-900/60 border border-white/5">38.2%: Rs. {technicals.supportResistance.fibonacciLevels.fib382}</div>
+              <div className="p-1.5 rounded bg-slate-900/60 border border-white/5">50.0%: Rs. {technicals.supportResistance.fibonacciLevels.fib500}</div>
+              <div className="p-1.5 rounded bg-slate-900/60 border border-white/5">61.8%: Rs. {technicals.supportResistance.fibonacciLevels.fib618}</div>
+              <div className="p-1.5 rounded bg-slate-900/60 border border-white/5">78.6%: Rs. {technicals.supportResistance.fibonacciLevels.fib786}</div>
             </div>
           </div>
 

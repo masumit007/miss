@@ -5,11 +5,11 @@ export interface SmartMoneyAnalysis {
   shareholding: ShareholdingPattern[];
   latestPromoterHolding: number;
   latestPromoterPledged: number;
-  latestFiiHolding: number;
-  latestDiiHolding: number;
+  latestForeignHolding: number;
+  latestInstitutionalHolding: number;
   latestPublicHolding: number;
-  fiiChangeQoQ: number;
-  diiChangeQoQ: number;
+  foreignChangeQoQ: number;
+  institutionalChangeQoQ: number;
   promoterChangeQoQ: number;
   recentDeals: BulkBlockDeal[];
   deliveryAnalysis: {

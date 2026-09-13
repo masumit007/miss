@@ -1,4 +1,4 @@
-import { Nepse } from '@rumess/nepse-api';
+import { Nepse, IndexIDEnum } from '@rumess/nepse-api';
 
 export class NepseClient {
   private static instance: NepseClient;
@@ -107,7 +107,7 @@ export class NepseClient {
     return this.nepse.getNepseIndexDailyGraph();
   }
 
-  async getIndexGraph(indexId: number) {
+  async getIndexGraph(indexId: IndexIDEnum) {
     return this.nepse.getIndexDailyGraph(indexId);
   }
 }

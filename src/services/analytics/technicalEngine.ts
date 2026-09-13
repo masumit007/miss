@@ -435,9 +435,10 @@ export class TechnicalEngine {
     macd: MacdData,
     adx: AdxData
   ): BreakoutAnalysis {
+    const volumeRatio = quote.volumeRatio ?? 1;
     const isPriceAboveResistance = quote.currentPrice >= sr.resistance1 * 0.998;
     const isPriceBelowSupport = quote.currentPrice <= sr.support1 * 1.002;
-    const isVolumeExpanded = quote.volumeRatio >= 1.25;
+    const isVolumeExpanded = volumeRatio >= 1.25;
     const isRsiBullish = rsi.value >= 55 && rsi.value <= 72;
     const isMacdBullish = macd.histogram > 0 && macd.histogramTrend === 'Increasing';
     const isAdxStrong = adx.adx >= 22;
@@ -447,7 +448,7 @@ export class TechnicalEngine {
     let type: BreakoutAnalysis['type'] = 'None';
     let confidenceScore = 0;
 
-    if (quote.currentPrice >= quote.fiftyTwoWeekHigh * 0.99) {
+    if (quote.fiftyTwoWeekHigh !== null && quote.currentPrice >= quote.fiftyTwoWeekHigh * 0.99) {
       isBreakout = true;
       type = '52W High Breakout';
       confidenceScore += 35;
@@ -479,9 +480,9 @@ export class TechnicalEngine {
     else if (confidenceScore > 0) confidenceLabel = 'Speculative / Weak';
 
     const explanation = isBreakout
-      ? `${type} confirmed with ${quote.volumeRatio}x volume expansion, RSI at ${rsi.value}, and MACD ${macd.histogramTrend.toLowerCase()}. Model score: ${confidenceScore}/100.`
+      ? `${type} confirmed with ${volumeRatio}x volume expansion, RSI at ${rsi.value}, and MACD ${macd.histogramTrend.toLowerCase()}. Model score: ${confidenceScore}/100.`
       : isBreakdown
-      ? `${type} detected below support level ₹${sr.support1} with volume confirmation.`
+      ? `${type} detected below support level Rs. ${sr.support1} with volume confirmation.`
       : 'No active breakout or breakdown detected. Stock is consolidating within range.';
 
     return {
@@ -493,7 +494,7 @@ export class TechnicalEngine {
       confirmationFactors: {
         priceAboveResistance: isPriceAboveResistance,
         volumeExpansion: isVolumeExpanded,
-        relativeVolumeMultiplier: quote.volumeRatio,
+        relativeVolumeMultiplier: volumeRatio,
         rsiConfirmation: isRsiBullish,
         macdConfirmation: isMacdBullish,
         adxConfirmation: isAdxStrong
@@ -654,7 +655,7 @@ export class TechnicalEngine {
     if (rsi.value >= 50 && rsi.value <= 68) score += 8;
     if (adx.trendStrength === 'Strong' && adx.trendDirection === 'Bullish Dominance') score += 8;
     if (breakout.isBreakout) score += 6;
-    if (quote.volumeRatio > 1.2) score += 5;
+    if ((quote.volumeRatio ?? 1) > 1.2) score += 5;
     if (rsi.value > 75) score -= 8; // Extended
     if (movingAverages.sma200.priceVsMa === 'Below') score -= 15;
 
@@ -687,7 +688,7 @@ export class TechnicalEngine {
         explanation: `14-day Rate of Change is ${roc14}%.`
       },
       onBalanceVolume: {
-        obvTrend: quote.volumeRatio > 1.1 ? 'Accumulation' : 'Neutral',
+        obvTrend: (quote.volumeRatio ?? 1) > 1.1 ? 'Accumulation' : 'Neutral',
         divergence: 'No bearish OBV divergence detected.'
       },
       vwap: {

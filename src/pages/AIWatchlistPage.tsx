@@ -14,7 +14,7 @@ export const AIWatchlistPage: React.FC<{ onSelectStock: (symbol: string) => void
   const categories = [
     { id: 'bullish', label: 'AI Bullish Watch', icon: TrendingUp, preset: 'breakout', desc: 'Stocks with strong technical and institutional momentum' },
     { id: 'support', label: 'Support & Oversold Watch', icon: Anchor, preset: 'support_rebound', desc: 'Stocks testing multi-month support floors' },
-    { id: 'smart_money', label: 'Smart Money Watch', icon: Coins, preset: 'smart_money_accumulation', desc: 'Sustained institutional FII/DII accumulation' },
+    { id: 'smart_money', label: 'Smart Money Watch', icon: Coins, preset: 'smart_money_accumulation', desc: 'Sustained foreign + domestic institutional accumulation' },
     { id: 'value', label: 'Value & Quality Watch', icon: Award, preset: 'piotroski_high', desc: 'High Piotroski F-score and low valuation multiples' }
   ];
 
@@ -89,7 +89,7 @@ export const AIWatchlistPage: React.FC<{ onSelectStock: (symbol: string) => void
                     <span className="text-xs text-slate-400 block line-clamp-1">{item.quote.name}</span>
                   </div>
                   <div className="text-right font-mono">
-                    <span className="text-sm font-bold text-white block">₹{item.quote.currentPrice}</span>
+                    <span className="text-sm font-bold text-white block">Rs. {item.quote.currentPrice}</span>
                     <span className={`text-xs ${item.quote.dayChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {item.quote.dayChange >= 0 ? '+' : ''}{item.quote.dayChangePercent}%
                     </span>

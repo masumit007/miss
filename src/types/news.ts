@@ -13,7 +13,7 @@ export type CorporateEventType =
   | 'Credit Rating'
   | 'General Market News';
 
-export type NewsSourceTier = 'Official Filing (NSE/BSE)' | 'Reputable Financial Press' | 'Major News Outlet' | 'Industry Publication';
+export type NewsSourceTier = 'Official Filing (NEPSE/SEBON)' | 'Reputable Financial Press' | 'Major News Outlet' | 'Industry Publication';
 
 export interface NewsArticle {
   id: string;

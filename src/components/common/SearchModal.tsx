@@ -50,7 +50,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onSel
             type="text"
             value={query}
             onChange={(e) => performSearch(e.target.value)}
-            placeholder="Search NSE/BSE stocks, ISIN, BSE code, sector (e.g. RELIANCE, TCS, Bank)..."
+            placeholder="Search NEPSE stocks, ISIN, sector (e.g. NABIL, NLIC, Hydropower)..."
             className="w-full bg-transparent px-3 py-1 text-slate-100 placeholder-slate-500 focus:outline-none text-sm sm:text-base font-medium"
           />
           {query && (
@@ -107,22 +107,20 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onSel
                       <span className="text-xs px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 border border-white/5">
                         {stock.exchange}
                       </span>
-                      {stock.bseCode && (
-                        <span className="text-xs text-slate-500 font-mono">BSE: {stock.bseCode}</span>
-                      )}
+
                     </div>
                     <p className="text-xs text-slate-400 line-clamp-1 mt-0.5">{stock.name}</p>
                     <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-400">
                       <span className="flex items-center gap-0.5"><Building2 className="w-3 h-3 text-slate-400" /> {stock.sector}</span>
                       <span>•</span>
-                      <span>ISIN: {stock.isin}</span>
+                      <span>ISIN: {stock.isin ?? 'N/A'}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="text-right shrink-0">
                   <div className="font-mono font-bold text-slate-100 text-sm sm:text-base">
-                    ₹{stock.currentPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    Rs. {stock.currentPrice.toLocaleString('en-NP', { minimumFractionDigits: 2 })}
                   </div>
                   <div className={`text-xs font-mono font-medium ${stock.dayChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     {stock.dayChange >= 0 ? '+' : ''}{stock.dayChange.toFixed(2)} ({stock.dayChangePercent >= 0 ? '+' : ''}{stock.dayChangePercent}%)
@@ -140,7 +138,7 @@ export const SearchModal: React.FC<SearchModalProps> = ({ isOpen, onClose, onSel
 
         {/* Footer info */}
         <div className="p-3 bg-slate-950/70 border-t border-white/10 flex items-center justify-between text-xs text-slate-400">
-          <span>Global Search covering NSE & BSE Equities</span>
+          <span>Search covering NEPSE-listed Equities</span>
           <span className="font-mono">MISS Market Intelligence</span>
         </div>
       </div>

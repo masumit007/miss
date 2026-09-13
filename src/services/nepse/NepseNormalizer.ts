@@ -1,26 +1,7 @@
 import { DataValidator } from './DataValidator';
+import { StockQuote, OHLCV } from '../../types/stock';
 
-export interface NormalizedQuote {
-  symbol: string;
-  name: string;
-  currentPrice: number | null;
-  previousClose: number | null;
-  dayChange: number | null;
-  dayChangePercent: number | null;
-  open: number | null;
-  high: number | null;
-  low: number | null;
-  volume: number | null;
-  turnover: number | null;
-  sector: string | null;
-  source: string;
-  fetchedAt: string;
-}
-
-function get(
-  object: any,
-  keys: string[]
-): any {
+function get(object: any, keys: string[]): any {
   if (!object || typeof object !== 'object') {
     return null;
   }
@@ -28,11 +9,7 @@ function get(
   for (const key of keys) {
     const value = object[key];
 
-    if (
-      value !== undefined &&
-      value !== null &&
-      value !== ''
-    ) {
+    if (value !== undefined && value !== null && value !== '') {
       return value;
     }
   }
@@ -40,31 +17,20 @@ function get(
   return null;
 }
 
-function toNumber(
-  value: any
-): number | null {
-  if (
-    value === undefined ||
-    value === null ||
-    value === ''
-  ) {
+function toNumber(value: any): number | null {
+  if (value === undefined || value === null || value === '') {
     return null;
   }
 
-  const number = Number(value);
+  const number = Number(
+    String(value).replace(/,/g, '').replace(/%/g, '').trim()
+  );
 
-  return Number.isFinite(number)
-    ? number
-    : null;
+  return Number.isFinite(number) ? number : null;
 }
 
-function toString(
-  value: any
-): string {
-  if (
-    value === undefined ||
-    value === null
-  ) {
+function toString(value: any): string {
+  if (value === undefined || value === null) {
     return '';
   }
 
@@ -75,130 +41,71 @@ function toString(
 |--------------------------------------------------------------------------
 | QUOTE NORMALIZER
 |--------------------------------------------------------------------------
+| Produces a real StockQuote from a raw NEPSE live-market record, or null
+| if the record doesn't carry enough real data to build one. NEVER fills
+| a missing required field with a fabricated number — if a required field
+| (price/OHLCV) can't be parsed, the whole quote is treated as unavailable
+| rather than shown with an invented value.
+|
+| Fields NEPSE's live feed does not provide at all (marketCap, beta, isin,
+| faceValue, sharesOutstanding, fiftyTwoWeekHigh/Low, averageVolume,
+| volumeRatio, deliveryPercentage, industry) are explicitly set to null.
+| Populating them requires a further join against getSecurityDetails() /
+| getCompanies(), which is a separate, not-yet-implemented enrichment step.
+| Sector IS sometimes present directly on the live record and is used when
+| available; otherwise it stays null.
 */
-
-export function normalizeQuote(
-  raw: any
-): NormalizedQuote | null {
+export function normalizeQuote(raw: any): StockQuote | null {
   if (!raw || typeof raw !== 'object') {
     return null;
   }
 
   const security =
-    raw.security &&
-    typeof raw.security === 'object'
-      ? raw.security
-      : null;
+    raw.security && typeof raw.security === 'object' ? raw.security : null;
 
   const company =
-    security?.companyId &&
-    typeof security.companyId === 'object'
+    security?.companyId && typeof security.companyId === 'object'
       ? security.companyId
       : null;
 
   const sectorMaster =
-    company?.sectorMaster &&
-    typeof company.sectorMaster === 'object'
+    company?.sectorMaster && typeof company.sectorMaster === 'object'
       ? company.sectorMaster
       : null;
 
   const symbol =
-    toString(
-      get(raw, [
-        'symbol',
-        'securitySymbol',
-        'ticker',
-        'code'
-      ])
-    ) ||
-    toString(
-      get(security, [
-        'symbol',
-        'securitySymbol',
-        'ticker',
-        'code'
-      ])
-    ) ||
-    toString(
-      get(company, [
-        'companyShortName'
-      ])
-    );
+    toString(get(raw, ['symbol', 'securitySymbol', 'ticker', 'code'])) ||
+    toString(get(security, ['symbol', 'securitySymbol', 'ticker', 'code'])) ||
+    toString(get(company, ['companyShortName']));
 
   if (!symbol) {
     return null;
   }
 
   const name =
-    toString(
-      get(raw, [
-        'securityName',
-        'name',
-        'companyName'
-      ])
-    ) ||
-    toString(
-      get(security, [
-        'securityName',
-        'name'
-      ])
-    ) ||
-    toString(
-      get(company, [
-        'companyName'
-      ])
-    );
+    toString(get(raw, ['securityName', 'name', 'companyName'])) ||
+    toString(get(security, ['securityName', 'name'])) ||
+    toString(get(company, ['companyName'])) ||
+    symbol;
 
-  const currentPrice =
-    toNumber(
-      get(raw, [
-        'lastTradedPrice',
-        'ltp',
-        'lastPrice',
-        'closePrice',
-        'closingPrice'
-      ])
-    );
+  const currentPrice = toNumber(
+    get(raw, ['lastTradedPrice', 'ltp', 'lastPrice', 'closePrice', 'closingPrice'])
+  );
 
-  const previousClose =
-    toNumber(
-      get(raw, [
-        'previousDayClosePrice',
-        'previousClose',
-        'previousClosingPrice'
-      ])
-    );
+  const previousClose = toNumber(
+    get(raw, ['previousDayClosePrice', 'previousClose', 'previousClosingPrice'])
+  );
 
-  let dayChange =
-    toNumber(
-      get(raw, [
-        'change',
-        'difference',
-        'priceChange'
-      ])
-    );
+  let dayChange = toNumber(get(raw, ['change', 'difference', 'priceChange']));
 
-  let dayChangePercent =
-    toNumber(
-      get(raw, [
-        'percentageChange',
-        'perChange',
-        'changePercent',
-        'percentChange'
-      ])
-    );
+  let dayChangePercent = toNumber(
+    get(raw, ['percentageChange', 'perChange', 'changePercent', 'percentChange'])
+  );
 
-  /*
-   * If NEPSE does not provide the change directly,
-   * calculate it from current price and previous close.
-   */
-  if (
-    dayChange === null &&
-    currentPrice !== null &&
-    previousClose !== null
-  ) {
-    dayChange =
-      currentPrice - previousClose;
+  // If NEPSE doesn't provide the change directly, derive it — this is
+  // arithmetic on real fetched numbers, not fabrication.
+  if (dayChange === null && currentPrice !== null && previousClose !== null) {
+    dayChange = currentPrice - previousClose;
   }
 
   if (
@@ -207,106 +114,85 @@ export function normalizeQuote(
     previousClose !== null &&
     previousClose !== 0
   ) {
-    dayChangePercent =
-      (dayChange / previousClose) * 100;
+    dayChangePercent = (dayChange / previousClose) * 100;
   }
 
-  const open =
-    toNumber(
-      get(raw, [
-        'openPrice',
-        'open'
-      ])
-    );
+  const open = toNumber(get(raw, ['openPrice', 'open']));
+  const high = toNumber(get(raw, ['highPrice', 'high', 'dayHigh']));
+  const low = toNumber(get(raw, ['lowPrice', 'low', 'dayLow']));
 
-  const high =
-    toNumber(
-      get(raw, [
-        'highPrice',
-        'high',
-        'dayHigh'
-      ])
-    );
+  const volume = toNumber(
+    get(raw, ['lastTradedVolume', 'totalTradedQuantity', 'volume', 'tradedVolume'])
+  );
 
-  const low =
-    toNumber(
-      get(raw, [
-        'lowPrice',
-        'low',
-        'dayLow'
-      ])
-    );
-
-  const volume =
-    toNumber(
-      get(raw, [
-        'lastTradedVolume',
-        'totalTradedQuantity',
-        'volume',
-        'tradedVolume'
-      ])
-    );
-
-  const turnover =
-    toNumber(
-      get(raw, [
-        'totalTradedValue',
-        'turnover',
-        'value'
-      ])
-    );
+  const turnover = toNumber(get(raw, ['totalTradedValue', 'turnover', 'value']));
 
   const sector =
-    toString(
-      get(raw, [
-        'sector',
-        'sectorName'
-      ])
-    ) ||
-    toString(
-      get(sectorMaster, [
-        'sectorDescription'
-      ])
-    ) ||
+    toString(get(raw, ['sector', 'sectorName'])) ||
+    toString(get(sectorMaster, ['sectorDescription'])) ||
     null;
 
   const fetchedAt =
-    toString(
-      get(raw, [
-        'lastUpdatedDateTime',
-        'lastUpdatedTime',
-        'fetchedAt'
-      ])
-    ) ||
+    toString(get(raw, ['lastUpdatedDateTime', 'lastUpdatedTime', 'fetchedAt'])) ||
     new Date().toISOString();
+
+  // Required fields for a usable quote. If any of these can't be parsed
+  // from the source, we don't have a real quote to show — return null
+  // rather than filling the gap with 0 or an invented number.
+  if (
+    currentPrice === null ||
+    previousClose === null ||
+    dayChange === null ||
+    dayChangePercent === null ||
+    open === null ||
+    high === null ||
+    low === null ||
+    volume === null
+  ) {
+    return null;
+  }
 
   return {
     symbol,
+    exchange: 'NEPSE',
     name,
 
     currentPrice,
-
-    previousClose,
-
     dayChange,
-
     dayChangePercent,
-
     open,
-
-    high,
-
-    low,
-
+    previousClose,
+    dayHigh: high,
+    dayLow: low,
     volume,
+    turnover: turnover ?? 0,
 
-    turnover,
+    // Not available from the live feed today — see file header comment.
+    isin: null,
+    fiftyTwoWeekHigh: null,
+    fiftyTwoWeekLow: null,
+    averageVolume: null,
+    volumeRatio: null,
+    marketCap: null,
+    freeFloatMarketCap: null,
+    faceValue: null,
+    sharesOutstanding: null,
+    industry: null,
+    beta: null,
+    deliveryPercentage: null,
 
     sector,
 
-    source: 'NEPSE',
-
-    fetchedAt
+    freshness: {
+      timestamp: new Date().toISOString(),
+      formattedTime: fetchedAt,
+      source: 'NEPSE (live market feed)',
+      status: 'LIVE',
+      // Reflects that several StockQuote fields are known-unavailable from
+      // this source, not a claim of full data completeness.
+      completeness: 55,
+      confidence: 'Medium'
+    }
   };
 }
 
@@ -316,97 +202,36 @@ export function normalizeQuote(
 |--------------------------------------------------------------------------
 */
 
-export function normalizeOHLCV(
-  raw: any
-): any | null {
+export function normalizeOHLCV(raw: any): OHLCV | null {
   if (!raw || typeof raw !== 'object') {
     return null;
   }
 
-  const date =
-    get(raw, [
-      'businessDate',
-      'business_date',
-      'date',
-      'tradeDate',
-      'time',
-      'timestamp'
-    ]);
+  const date = get(raw, [
+    'businessDate',
+    'business_date',
+    'date',
+    'tradeDate',
+    'time',
+    'timestamp'
+  ]);
 
-  const open =
-    toNumber(
-      get(raw, [
-        'openPrice',
-        'open'
-      ])
-    );
+  const open = toNumber(get(raw, ['openPrice', 'open']));
+  const high = toNumber(get(raw, ['highPrice', 'high']));
+  const low = toNumber(get(raw, ['lowPrice', 'low']));
+  const close = toNumber(
+    get(raw, ['closePrice', 'close', 'lastTradedPrice'])
+  );
+  const volume = toNumber(
+    get(raw, ['totalTradedQuantity', 'lastTradedVolume', 'volume', 'tradedVolume'])
+  );
 
-  const high =
-    toNumber(
-      get(raw, [
-        'highPrice',
-        'high'
-      ])
-    );
-
-  const low =
-    toNumber(
-      get(raw, [
-        'lowPrice',
-        'low'
-      ])
-    );
-
-  const close =
-    toNumber(
-      get(raw, [
-        'closePrice',
-        'close',
-        'lastTradedPrice'
-      ])
-    );
-
-  const volume =
-    toNumber(
-      get(raw, [
-        'totalTradedQuantity',
-        'lastTradedVolume',
-        'volume',
-        'tradedVolume'
-      ])
-    );
-
-  if (
-    !date ||
-    open === null ||
-    high === null ||
-    low === null ||
-    close === null
-  ) {
+  if (!date || open === null || high === null || low === null || close === null) {
     return null;
   }
 
-  /*
-   * Keep the validator, but never allow one bad
-   * NEPSE record to crash the complete chart.
-   */
-  try {
-    const validation =
-      DataValidator.validateOHLCV({
-        time: String(date),
-        open,
-        high,
-        low,
-        close,
-        volume: volume ?? 0
-      });
-
-    if (!validation.valid) {
-      return null;
-    }
-  } catch {
-    // If validator has a different implementation,
-    // the normalized OHLC data can still be returned.
+  if (!DataValidator.validOHLC(open, high, low, close)) {
+    return null;
   }
 
   return {

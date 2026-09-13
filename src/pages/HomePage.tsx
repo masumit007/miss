@@ -188,9 +188,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectStock })
             <span className="text-[11px] font-bold text-slate-400 font-mono uppercase tracking-wider block">
               NRB Monetary Stance & Rates
             </span>
-            <div className="text-lg font-bold text-emerald-400 font-mono">Accommodative & Liquid</div>
+            <div className="text-lg font-bold text-slate-400 font-mono">Data unavailable</div>
             <p className="text-[11px] text-slate-400 leading-tight">
-              Policy repo rate at 5.50%; CD ratio well below 90% statutory cap, driving institutional buying.
+              No Nepal Rastra Bank monetary data feed is integrated yet.
             </p>
           </GlassCard>
         </div>

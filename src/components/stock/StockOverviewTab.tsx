@@ -40,12 +40,12 @@ export const StockOverviewTab: React.FC<StockOverviewTabProps> = ({
     <div className="space-y-6">
       {/* 8 Primary Financial & Quantitative Metrics in NPR */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <MetricCard label="Market Capitalization" value={`Rs. ${(quote.marketCap / 100).toFixed(2)} Arb`} subValue={`Rank #1 in ${quote.sector}`} highlight />
-        <MetricCard label="P/E Multiple" value={`${fundamentals.valuation.pe}x`} subValue={`Sector Median: 22.4x`} />
+        <MetricCard label="Market Capitalization" value={quote.marketCap !== null ? `Rs. ${(quote.marketCap / 100).toFixed(2)} Arb` : 'N/A'} subValue={quote.sector ?? 'Sector unclassified'} highlight />
+        <MetricCard label="P/E Multiple" value={`${fundamentals.valuation.pe}x`} subValue="Trailing 12M" />
         <MetricCard label="Piotroski F-Score" value={`${fundamentals.piotroski.score}/9`} subValue={fundamentals.piotroski.classification.split(' (')[0]} />
         <MetricCard label="Graham Value" value={`Rs. ${fundamentals.graham.grahamNumber}`} subValue={`P/E×P/B: ${fundamentals.graham.peTimesPb}`} />
         <MetricCard label="Return on Equity (ROE)" value={`${fundamentals.profitability.roe}%`} subValue={`ROCE: ${fundamentals.profitability.roce}%`} />
-        <MetricCard label="Delivery Volume %" value={`${quote.deliveryPercentage}%`} subValue="Positional Absorption" />
+        <MetricCard label="Delivery Volume %" value={quote.deliveryPercentage !== null && quote.deliveryPercentage !== undefined ? `${quote.deliveryPercentage}%` : 'N/A'} subValue="Positional Absorption" />
         <MetricCard label="RSI 14 Momentum" value={`${technicals.rsi.value}`} subValue={technicals.rsi.classification} />
         <MetricCard label="Technical Stance" value={technicals.overallTechnicalSignal} subValue={`ADX: ${technicals.adx.adx} (${technicals.adx.trendStrength})`} />
       </div>

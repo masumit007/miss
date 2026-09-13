@@ -17,7 +17,7 @@ export const TodaysPriceTable: React.FC<TodaysPriceTableProps> = ({ stocks, onSe
   const itemsPerPage = 12;
 
   const sectors = useMemo(() => {
-    const list = Array.from(new Set(stocks.map((s) => s.sector))).filter(Boolean);
+    const list = Array.from(new Set(stocks.map((s) => s.sector))).filter((s): s is string => Boolean(s));
     return ['All', ...list];
   }, [stocks]);
 

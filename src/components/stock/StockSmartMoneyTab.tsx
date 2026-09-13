@@ -10,8 +10,8 @@ export const StockSmartMoneyTab: React.FC<{ smartMoney: SmartMoneyAnalysis }> = 
     <div className="space-y-6">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <MetricCard label="Smart Money Classification" value={smartMoney.smartMoneyClassification} highlight />
-        <MetricCard label="FII / Foreign Holding" value={`${smartMoney.latestFiiHolding}%`} change={smartMoney.fiiChangeQoQ} changeLabel="QoQ" />
-        <MetricCard label="Mutual Fund / DII Holding" value={`${smartMoney.latestDiiHolding}%`} change={smartMoney.diiChangeQoQ} changeLabel="QoQ" />
+        <MetricCard label="Foreign Investor Holding" value={`${smartMoney.latestForeignHolding}%`} change={smartMoney.foreignChangeQoQ} changeLabel="QoQ" />
+        <MetricCard label="Domestic Institutional Holding" value={`${smartMoney.latestInstitutionalHolding}%`} change={smartMoney.institutionalChangeQoQ} changeLabel="QoQ" />
         <MetricCard label="Promoter Pledged" value={`${smartMoney.latestPromoterPledged}%`} subValue="Zero Pledge Risk" />
       </div>
 

@@ -168,9 +168,9 @@ export const ScreenersPage: React.FC<{ onSelectStock: (symbol: string) => void }
                       {r.quote.dayChange >= 0 ? '+' : ''}{r.quote.dayChangePercent}%
                     </td>
                     <td className="p-3">{r.technicals.rsi.value}</td>
-                    <td className="p-3 font-bold text-emerald-400">{r.fundamentals.profitability.roe}%</td>
-                    <td className="p-3">{r.fundamentals.valuation.pe}x</td>
-                    <td className="p-3 font-bold text-cyan-300">{r.fundamentals.piotroski.score}/9</td>
+                    <td className="p-3 font-bold text-emerald-400">{r.fundamentals ? `${r.fundamentals.profitability.roe}%` : 'N/A'}</td>
+                    <td className="p-3">{r.fundamentals ? `${r.fundamentals.valuation.pe}x` : 'N/A'}</td>
+                    <td className="p-3 font-bold text-cyan-300">{r.fundamentals ? `${r.fundamentals.piotroski.score}/9` : 'N/A'}</td>
                     <td className="p-3">
                       <span className="px-2 py-0.5 rounded bg-cyan-950 border border-cyan-500/30 text-cyan-300 font-bold">
                         {r.score.overallScore}/100

@@ -28,7 +28,7 @@ export const SmartMoneyPage: React.FC<{ onSelectStock: (symbol: string) => void 
             <Coins className="w-6 h-6 text-cyan-400" /> MISS Smart Money Radar
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Tracking institutional ownership changes, FII/DII quarterly net flows, bulk & block deals, and positional delivery absorption.
+            Tracking institutional ownership changes, foreign & domestic institutional quarterly net flows, bulk & block deals, and positional delivery absorption.
           </p>
         </div>
       </div>
@@ -50,10 +50,10 @@ export const SmartMoneyPage: React.FC<{ onSelectStock: (symbol: string) => void 
               <tr className="border-b border-white/10 text-slate-400">
                 <th className="p-3">Symbol</th>
                 <th className="p-3">Price</th>
-                <th className="p-3">FII Holding</th>
-                <th className="p-3">FII QoQ</th>
-                <th className="p-3">DII Holding</th>
-                <th className="p-3">DII QoQ</th>
+                <th className="p-3">Foreign Holding</th>
+                <th className="p-3">Foreign QoQ</th>
+                <th className="p-3">Domestic Inst. Holding</th>
+                <th className="p-3">Domestic Inst. QoQ</th>
                 <th className="p-3">Promoter Pledge</th>
                 <th className="p-3">Delivery %</th>
                 <th className="p-3">Classification</th>
@@ -70,7 +70,7 @@ export const SmartMoneyPage: React.FC<{ onSelectStock: (symbol: string) => void 
                     <span className="font-bold text-cyan-300 block">{it.quote.symbol}</span>
                     <span className="text-[10px] text-slate-400 font-sans block line-clamp-1">{it.quote.name}</span>
                   </td>
-                  <td className="p-3 font-bold text-white">₹{it.quote.currentPrice}</td>
+                  <td className="p-3 font-bold text-white">Rs. {it.quote.currentPrice}</td>
                   <td className="p-3 font-bold text-white">{it.quote.sharesOutstanding ? '24.8%' : '20.0%'}</td>
                   <td className="p-3 font-bold text-emerald-400">+0.65%</td>
                   <td className="p-3 font-bold text-white">14.6%</td>

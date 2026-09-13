@@ -21,7 +21,7 @@ export const MarketsPage: React.FC<{ onSelectStock: (symbol: string) => void }> 
   const [sectoralIndices, setSectoralIndices] = useState<MarketIndex[]>([]);
   const [breadth, setBreadth] = useState<MarketBreadth | null>(null);
   const [sectors, setSectors] = useState<SectorPerformance[]>([]);
-  const [fiiDii, setFiiDii] = useState<InstitutionalActivity[]>([]);
+  const [institutionalFlows, setInstitutionalFlows] = useState<InstitutionalActivity[]>([]);
   const [macro, setMacro] = useState<MacroIndicator[]>([]);
   const [activeTab, setActiveTab] = useState<'indices' | 'sectors' | 'institutional' | 'macro'>('indices');
 
@@ -33,7 +33,7 @@ export const MarketsPage: React.FC<{ onSelectStock: (symbol: string) => void }> 
         setSectoralIndices(overview.sectoralIndices);
         setBreadth(overview.breadth);
         setSectors(overview.sectors);
-        setFiiDii(overview.recentFiiDii);
+        setInstitutionalFlows(overview.recentInstitutionalFlows);
         setMacro(overview.macro);
       } catch (err) {
         console.error(err);
@@ -96,9 +96,9 @@ export const MarketsPage: React.FC<{ onSelectStock: (symbol: string) => void }> 
             <span className="text-[10px] font-bold text-slate-400 font-mono uppercase tracking-wider block">
               NRB Monetary Policy Stance
             </span>
-            <div className="text-lg font-bold text-emerald-400 font-mono">Accommodative & Liquid</div>
+            <div className="text-lg font-bold text-slate-400 font-mono">Data unavailable</div>
             <p className="text-[11px] text-slate-400 leading-tight">
-              Policy repo rate at 5.50%; CD ratio well below 90% statutory cap, driving institutional buying.
+              No Nepal Rastra Bank monetary data feed is integrated yet.
             </p>
           </GlassCard>
         </div>
@@ -232,7 +232,7 @@ export const MarketsPage: React.FC<{ onSelectStock: (symbol: string) => void }> 
                     </span>
                   </div>
                   <div className="flex justify-between"><span className="text-slate-400">Momentum:</span> <span className="text-cyan-300">{s.momentum}</span></div>
-                  <div className="flex justify-between"><span className="text-slate-400">Relative Stance:</span> <span className="text-slate-200">{s.relativeStrengthVsNifty}</span></div>
+                  <div className="flex justify-between"><span className="text-slate-400">Relative Stance:</span> <span className="text-slate-200">{s.relativeStrengthVsNepse}</span></div>
                 </div>
               </GlassCard>
             );
@@ -251,20 +251,20 @@ export const MarketsPage: React.FC<{ onSelectStock: (symbol: string) => void }> 
               <thead>
                 <tr className="border-b border-white/10 text-slate-400 bg-slate-950/40">
                   <th className="p-3">Date</th>
-                  <th className="p-3">FII Gross / Net</th>
-                  <th className="p-3">DII Gross / Net</th>
+                  <th className="p-3">Foreign Gross / Net</th>
+                  <th className="p-3">Domestic Inst. Gross / Net</th>
                   <th className="p-3">Total Net Institutional Flow</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {fiiDii.map((row, idx) => (
+                {institutionalFlows.map((row, idx) => (
                   <tr key={idx} className="hover:bg-slate-900/60 transition-colors">
                     <td className="p-3 font-bold text-white">{row.date}</td>
-                    <td className={`p-3 font-bold ${row.fiiNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {row.fiiNet >= 0 ? '+' : ''}Rs. {row.fiiNet} Cr
+                    <td className={`p-3 font-bold ${row.foreignNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {row.foreignNet >= 0 ? '+' : ''}Rs. {row.foreignNet} Cr
                     </td>
-                    <td className={`p-3 font-bold ${row.diiNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {row.diiNet >= 0 ? '+' : ''}Rs. {row.diiNet} Cr
+                    <td className={`p-3 font-bold ${row.institutionalNet >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                      {row.institutionalNet >= 0 ? '+' : ''}Rs. {row.institutionalNet} Cr
                     </td>
                     <td className="p-3 font-black text-cyan-300">Rs. {row.totalNet} Cr</td>
                   </tr>

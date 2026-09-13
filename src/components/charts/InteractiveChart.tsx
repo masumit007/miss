@@ -118,11 +118,11 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ symbol, cand
           {activeCandle && (
             <div className="flex flex-wrap items-center gap-4 text-xs font-mono text-slate-300 mb-2 px-2">
               <span className="text-slate-400 font-medium">Date: <strong className="text-white">{activeCandle.time}</strong></span>
-              <span>O: <strong className="text-slate-200">₹{activeCandle.open}</strong></span>
-              <span>H: <strong className="text-emerald-400">₹{activeCandle.high}</strong></span>
-              <span>L: <strong className="text-rose-400">₹{activeCandle.low}</strong></span>
-              <span>C: <strong className={activeCandle.close >= activeCandle.open ? 'text-emerald-400' : 'text-rose-400'}>₹{activeCandle.close}</strong></span>
-              <span>Vol: <strong className="text-cyan-400">{activeCandle.volume.toLocaleString('en-IN')}</strong></span>
+              <span>O: <strong className="text-slate-200">Rs. {activeCandle.open}</strong></span>
+              <span>H: <strong className="text-emerald-400">Rs. {activeCandle.high}</strong></span>
+              <span>L: <strong className="text-rose-400">Rs. {activeCandle.low}</strong></span>
+              <span>C: <strong className={activeCandle.close >= activeCandle.open ? 'text-emerald-400' : 'text-rose-400'}>Rs. {activeCandle.close}</strong></span>
+              <span>Vol: <strong className="text-cyan-400">{activeCandle.volume.toLocaleString('en-NP')}</strong></span>
               {activeCandle.deliveryPercent && (
                 <span>Delivery: <strong className="text-amber-300">{activeCandle.deliveryPercent}%</strong></span>
               )}
@@ -144,7 +144,7 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ symbol, cand
                   <g key={idx}>
                     <line x1={paddingX} y1={y} x2={svgWidth - paddingX} y2={y} stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
                     <text x={svgWidth - paddingX + 5} y={y + 3} fill="#64748b" fontSize="10" fontFamily="monospace">
-                      ₹{Math.round(p)}
+                      Rs. {Math.round(p)}
                     </text>
                   </g>
                 );
