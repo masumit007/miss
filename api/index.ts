@@ -2,15 +2,17 @@
  * Vercel Serverless Handler for MISS Backend
  *
  * This file serves as the entry point for Vercel's serverless execution.
- * It wraps the Express application configured in src/server/server.ts
- * and handles incoming HTTP requests.
+ * It wraps the Express application, pre-bundled into a single self-contained
+ * file (api/_server-bundle.mjs) by `npm run build:api` at build time, so
+ * there are no runtime relative-import lookups left for Node's strict ESM
+ * resolver to fail on.
  *
  * For local development, run: npm run server
  * For Vercel deployment, this file is automatically invoked.
  */
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import app from '../src/server/server';
+import app from './_server-bundle.mjs';
 
 // Vercel serverless handler
 export default (req: VercelRequest, res: VercelResponse) => {
