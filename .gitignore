@@ -1,7 +1,8 @@
 node_modules/
 dist/
 .env
+.env.local
+.env.production.local
 .DS_Store
 tsconfig.tsbuildinfo
 .env.production
-.env.local
