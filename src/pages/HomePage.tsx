@@ -80,27 +80,14 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectStock })
     };
   }, []);
 
-  const nepseMainIndex = indices[0] || {
-    symbol: 'NEPSE Index',
-    name: 'Nepal Stock Exchange Benchmark Index',
-    currentValue: 2960.40,
-    change: 37.52,
-    percentChange: 1.28,
-    high: 2975.20,
-    low: 2922.80,
-    open: 2922.88,
-    previousClose: 2922.88,
-    yearlyHigh: 3000.81,
-    yearlyLow: 1845.02,
-    sparkline: [2922, 2930, 2942, 2938, 2955, 2960.4]
-  };
-
   return (
     <div className="space-y-7 animate-fade-in pb-12">
       {/* 1. Hero Market Command Center */}
       <NepseIndexHeroChart
-        nepseIndex={nepseMainIndex}
+        nepseIndex={indices[0]}
         subIndices={sectoralIndices}
+        breadth={breadth}
+        loading={loading && indices.length === 0}
         onNavigate={onNavigate}
       />
 
@@ -217,7 +204,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectStock })
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
           {sectors.map((sec) => {
-            const isPos = sec.oneDayChange >= 0;
+            const isPos = (sec.oneDayChange ?? 0) >= 0;
             return (
               <div
                 key={sec.name}
@@ -229,20 +216,20 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onSelectStock })
                     {sec.name}
                   </span>
                   <span className={`font-bold ${isPos ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {isPos ? '+' : ''}{sec.oneDayChange}%
+                    {sec.oneDayChange !== null ? `${isPos ? '+' : ''}${sec.oneDayChange}%` : 'N/A'}
                   </span>
                 </div>
 
                 <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${isPos ? 'bg-emerald-400' : 'bg-rose-500'}`}
-                    style={{ width: `${Math.min(100, Math.abs(sec.oneDayChange) * 20 + 20)}%` }}
+                    style={{ width: `${Math.min(100, Math.abs(sec.oneDayChange ?? 0) * 20 + 20)}%` }}
                   />
                 </div>
 
                 <div className="flex justify-between text-[10px] text-slate-500 font-mono pt-0.5">
-                  <span>Top: <strong className="text-cyan-400">{sec.topStockSymbol}</strong></span>
-                  <span className="text-emerald-400 font-semibold">+{sec.topStockGain}%</span>
+                  <span>Top: <strong className="text-cyan-400">{sec.topStockSymbol ?? 'N/A'}</strong></span>
+                  <span className="text-emerald-400 font-semibold">{sec.topStockGain !== null ? `+${sec.topStockGain}%` : 'N/A'}</span>
                 </div>
               </div>
             );

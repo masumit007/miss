@@ -28,19 +28,23 @@ export interface MarketBreadth {
   newFiftyTwoWeekHighs: number;
   newFiftyTwoWeekLows: number;
   totalTraded: number;
+  /** Real total market turnover (NPR) and share volume for the day, when the source provides it — null otherwise. Never fabricated. */
+  totalTurnoverNpr: number | null;
+  totalVolume: number | null;
 }
 
 export interface SectorPerformance {
   name: string;
-  oneDayChange: number;
-  oneWeekChange: number;
-  oneMonthChange: number;
-  threeMonthChange: number;
-  oneYearChange: number;
+  /** Null when the real index history doesn't cover that lookback window yet. */
+  oneDayChange: number | null;
+  oneWeekChange: number | null;
+  oneMonthChange: number | null;
+  threeMonthChange: number | null;
+  oneYearChange: number | null;
   momentum: 'Strong Bullish' | 'Bullish' | 'Neutral' | 'Bearish' | 'Strong Bearish';
   relativeStrengthVsNepse: 'Outperforming' | 'In-line' | 'Underperforming';
-  topStockSymbol: string;
-  topStockGain: number;
+  topStockSymbol: string | null;
+  topStockGain: number | null;
   foreignFlowStatus?: 'Net Inflow' | 'Net Outflow' | 'Neutral';
 }
 

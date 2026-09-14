@@ -2,6 +2,7 @@ import { StockQuote, OHLCV, CorporateAction, QuarterlyResult, ShareholdingPatter
 import { MarketIndex, MarketBreadth, SectorPerformance, InstitutionalActivity, MacroIndicator } from '../../types/market';
 import { NewsArticle } from '../../types/news';
 import { IPOItem } from '../../types/ipo';
+import { FloorsheetAnalysis } from '../../types/broker';
 
 export interface IDataProvider {
   name: string;
@@ -25,6 +26,7 @@ export interface IDataProvider {
   getShareholdingPattern(symbol: string): Promise<ShareholdingPattern[]>;
   getCorporateActions(symbol: string): Promise<CorporateAction[]>;
   getBulkBlockDeals(symbol: string): Promise<BulkBlockDeal[]>;
+  getFloorsheetAnalysis(symbol: string): Promise<FloorsheetAnalysis>;
 
   // News & Corporate Announcements
   getMarketNews(category?: string): Promise<NewsArticle[]>;

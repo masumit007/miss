@@ -248,6 +248,29 @@ export class NepseLiveScraper {
     return Array.isArray(raw) ? raw : [];
   }
 
+  // Sector index history (for computing real sector performance) is
+  // fetched from the real NEPSE index-graph endpoint and cached — it's
+  // expensive to pull per sub-index and doesn't change intraday history.
+  private sectorHistoryCache = new Map<string, { data: [number, number][]; fetchedAt: number }>();
+  private readonly SECTOR_HISTORY_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+  async getSectorIndexHistory(indexId: import('@rumess/nepse-api').IndexIDEnum): Promise<[number, number][]> {
+    const cached = this.sectorHistoryCache.get(indexId);
+    if (cached && Date.now() - cached.fetchedAt < this.SECTOR_HISTORY_TTL_MS) {
+      return cached.data;
+    }
+
+    try {
+      const raw = await this.client.getIndexGraph(indexId);
+      const data = Array.isArray(raw) ? (raw as [number, number][]) : [];
+      this.sectorHistoryCache.set(indexId, { data, fetchedAt: Date.now() });
+      return data;
+    } catch {
+      // Real source failed — return cached (possibly empty), never fabricate.
+      return cached?.data ?? [];
+    }
+  }
+
   async getCompanyDetails(symbol: string) {
     return this.client.getSecurityDetails(symbol.trim().toUpperCase());
   }
@@ -262,6 +285,32 @@ export class NepseLiveScraper {
 
   async getFloorsheet(symbol?: string) {
     return this.client.getFloorsheet(symbol ? { symbol: symbol.trim().toUpperCase() } : undefined);
+  }
+
+  /**
+   * Pulls up to `maxPages` of real floorsheet rows for a symbol and
+   * flattens them. Bounded so a single request can't hang or cause a
+   * serverless function timeout — see BrokerEngine for how this is
+   * disclosed in the result (transactionsAnalyzed reflects what was
+   * actually pulled, not the full day's floorsheet).
+   */
+  async getFloorsheetRows(symbol: string, maxPages = 3, pageSize = 500): Promise<any[]> {
+    const normalized = symbol.trim().toUpperCase();
+    const rows: any[] = [];
+
+    for (let page = 0; page < maxPages; page++) {
+      try {
+        const result: any = await this.client.getFloorsheet({ symbol: normalized, page, size: pageSize });
+        const content = result?.floorsheets?.content ?? result?.content ?? [];
+        if (!Array.isArray(content) || content.length === 0) break;
+        rows.push(...content);
+        if (content.length < pageSize) break; // last page
+      } catch {
+        break; // real source failed — return what we already have, never fabricate more.
+      }
+    }
+
+    return rows;
   }
 
   private number(value: unknown): number | null {

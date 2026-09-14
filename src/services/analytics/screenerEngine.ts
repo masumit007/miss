@@ -217,7 +217,7 @@ export class ScreenerEngine {
       // when fundamentals are unavailable (a known, disclosed gap) — we
       // never fabricate a fundamentals object just to satisfy the shape;
       // callers must handle `fundamentals: null` in the result.
-      return matched ? { quote, technicals, fundamentals, score, matchedCriteria } : null;
+      return matched ? { quote, technicals, fundamentals, smartMoney, score, matchedCriteria } : null;
   }
 
   public static parseNaturalLanguageQuery(query: string): CustomScreenerConfig {

@@ -14,6 +14,8 @@ import { StockFundamentalsTab } from '../components/stock/StockFundamentalsTab';
 import { StockValuationTab } from '../components/stock/StockValuationTab';
 import { StockSmartMoneyTab } from '../components/stock/StockSmartMoneyTab';
 import { StockNewsTab, StockResultsTab } from '../components/stock/StockOtherTabs';
+import { FloorsheetAnalysis } from '../types/broker';
+import { StockBrokerTab } from '../components/stock/StockBrokerTab';
 import { InteractiveChart } from '../components/charts/InteractiveChart';
 import { ResearchReportModal } from '../components/ai/ResearchReportModal';
 import { DisclaimerBanner } from '../components/common/DisclaimerBanner';
@@ -33,7 +35,8 @@ import {
   Building, 
   Check,
   Award,
-  BookOpen
+  BookOpen,
+  Landmark
 } from 'lucide-react';
 
 interface StockDetailPageProps {
@@ -41,18 +44,25 @@ interface StockDetailPageProps {
   onNavigate: (page: string, params?: any) => void;
 }
 
+const UnavailableCard: React.FC<{ label: string }> = ({ label }) => (
+  <GlassCard className="py-12 text-center">
+    <p className="text-slate-400 font-mono text-xs max-w-md mx-auto">{label}</p>
+  </GlassCard>
+);
+
 export const StockDetailPage: React.FC<StockDetailPageProps> = ({ symbol, onNavigate }) => {
   const [data, setData] = useState<{
     quote: StockQuote;
     candles: OHLCV[];
     technicals: FullTechnicalAnalysis;
-    fundamentals: FullFundamentalAnalysis;
-    smartMoney: SmartMoneyAnalysis;
+    fundamentals: FullFundamentalAnalysis | null;
+    smartMoney: SmartMoneyAnalysis | null;
     score: MultiFactorScore;
     news: NewsArticle[];
     corporateActions: CorporateAction[];
     quarterlyResults: QuarterlyResult[];
   } | null>(null);
+  const [floorsheet, setFloorsheet] = useState<FloorsheetAnalysis | null>(null);
 
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [report, setReport] = useState<ResearchReport | null>(null);
@@ -73,6 +83,7 @@ export const StockDetailPage: React.FC<StockDetailPageProps> = ({ symbol, onNavi
 
   useEffect(() => {
     loadStockData(true);
+    ApiClient.getFloorsheetAnalysis(symbol).then(setFloorsheet).catch(() => setFloorsheet(null));
     // Real-time live quote refresh interval every 6 seconds
     const interval = setInterval(() => loadStockData(false), 6000);
     return () => clearInterval(interval);
@@ -115,6 +126,7 @@ export const StockDetailPage: React.FC<StockDetailPageProps> = ({ symbol, onNavi
     { id: 'valuation', label: 'VALUATION', icon: DollarSign },
     { id: 'ownership', label: 'OWNERSHIP', icon: PieChart },
     { id: 'smart_money', label: 'SMART MONEY', icon: Coins },
+    { id: 'broker', label: 'BROKER ACTIVITY', icon: Landmark },
     { id: 'news', label: 'NEWS', icon: Newspaper },
     { id: 'results', label: 'RESULTS', icon: TrendingUp },
     { id: 'growth', label: 'GROWTH', icon: Award },
@@ -182,19 +194,31 @@ export const StockDetailPage: React.FC<StockDetailPageProps> = ({ symbol, onNavi
         )}
 
         {activeTab === 'fundamentals' && (
-          <StockFundamentalsTab fundamentals={data.fundamentals} />
+          data.fundamentals
+            ? <StockFundamentalsTab fundamentals={data.fundamentals} />
+            : <UnavailableCard label="Fundamental data unavailable — no real filed financial statements are integrated for this stock yet." />
         )}
 
         {activeTab === 'valuation' && (
-          <StockValuationTab fundamentals={data.fundamentals} />
+          data.fundamentals
+            ? <StockValuationTab fundamentals={data.fundamentals} />
+            : <UnavailableCard label="Valuation data unavailable — requires real filed financials, not yet integrated for this stock." />
         )}
 
         {activeTab === 'ownership' && (
-          <StockSmartMoneyTab smartMoney={data.smartMoney} />
+          data.smartMoney
+            ? <StockSmartMoneyTab smartMoney={data.smartMoney} />
+            : <UnavailableCard label="Smart Money data unavailable from configured sources — no real shareholding disclosure source is integrated for this stock yet." />
         )}
 
         {activeTab === 'smart_money' && (
-          <StockSmartMoneyTab smartMoney={data.smartMoney} />
+          data.smartMoney
+            ? <StockSmartMoneyTab smartMoney={data.smartMoney} />
+            : <UnavailableCard label="Smart Money data unavailable from configured sources — no real shareholding disclosure source is integrated for this stock yet." />
+        )}
+
+        {activeTab === 'broker' && (
+          <StockBrokerTab floorsheet={floorsheet} />
         )}
 
         {activeTab === 'news' && (
@@ -206,7 +230,9 @@ export const StockDetailPage: React.FC<StockDetailPageProps> = ({ symbol, onNavi
         )}
 
         {activeTab === 'growth' && (
-          <StockFundamentalsTab fundamentals={data.fundamentals} />
+          data.fundamentals
+            ? <StockFundamentalsTab fundamentals={data.fundamentals} />
+            : <UnavailableCard label="Growth data unavailable — no real filed financial statements are integrated for this stock yet." />
         )}
 
         {activeTab === 'risk' && (
@@ -222,13 +248,13 @@ export const StockDetailPage: React.FC<StockDetailPageProps> = ({ symbol, onNavi
               </div>
               <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5">
                 <span className="text-slate-400 block font-mono">Debt to Equity</span>
-                <span className="text-base font-bold font-mono text-white">{data.fundamentals.balanceSheet.debtToEquity}</span>
-                <span className="text-[11px] text-emerald-400 block mt-1">{data.fundamentals.balanceSheet.leverageCategory}</span>
+                <span className="text-base font-bold font-mono text-white">{data.fundamentals ? data.fundamentals.balanceSheet.debtToEquity : 'N/A'}</span>
+                <span className="text-[11px] text-emerald-400 block mt-1">{data.fundamentals ? data.fundamentals.balanceSheet.leverageCategory : 'Data unavailable'}</span>
               </div>
               <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5">
                 <span className="text-slate-400 block font-mono">Solvency Score</span>
-                <span className="text-base font-bold font-mono text-cyan-300">{data.fundamentals.balanceSheet.solvencyScore}/100</span>
-                <span className="text-[11px] text-slate-400 block mt-1">High interest coverage buffer</span>
+                <span className="text-base font-bold font-mono text-cyan-300">{data.fundamentals ? `${data.fundamentals.balanceSheet.solvencyScore}/100` : 'N/A'}</span>
+                <span className="text-[11px] text-slate-400 block mt-1">{data.fundamentals ? 'Derived from real filed balance-sheet figures' : 'Data unavailable'}</span>
               </div>
             </div>
           </GlassCard>
@@ -242,15 +268,10 @@ export const StockDetailPage: React.FC<StockDetailPageProps> = ({ symbol, onNavi
             <div className="space-y-2.5 text-xs text-slate-300">
               <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5 flex justify-between">
                 <span>Promoter Pledging:</span>
-                <strong className="text-emerald-400 font-mono">{data.smartMoney.latestPromoterPledged}% (Zero/Minimal Risk)</strong>
+                <strong className="text-slate-100 font-mono">{data.smartMoney ? `${data.smartMoney.latestPromoterPledged}%` : 'N/A'}</strong>
               </div>
-              <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5 flex justify-between">
-                <span>Auditor Status:</span>
-                <strong className="text-slate-100">Big-4 Reputed Statutory Auditor (Clean Opinion)</strong>
-              </div>
-              <div className="p-3 rounded-xl bg-slate-900/50 border border-white/5 flex justify-between">
-                <span>Board Independence:</span>
-                <strong className="text-slate-100">&gt;50% Independent Board Directors</strong>
+              <div className="p-4 rounded-xl bg-slate-950/60 border border-white/5 text-[11px] text-slate-400 leading-relaxed">
+                Auditor identity, board independence, and other governance disclosures are not sourced by MISS yet — NOT IMPLEMENTABLE WITH CURRENT VERIFIED SOURCES. MISS never asserts a specific auditor or board composition without a real, verified disclosure source.
               </div>
             </div>
           </GlassCard>
@@ -272,14 +293,22 @@ export const StockDetailPage: React.FC<StockDetailPageProps> = ({ symbol, onNavi
             </div>
 
             <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
-              <p className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
-                <strong>Core Research Thesis:</strong> {data.quote.name} demonstrates superior capital returns (ROE {data.fundamentals.profitability.roe}%), high operating cash flow conversion (Piotroski {data.fundamentals.piotroski.score}/9), and steady accumulation by domestic and foreign institutional stakeholders.
-              </p>
+              {data.fundamentals ? (
+                <p className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
+                  <strong>Core Research Thesis:</strong> {data.quote.name} shows ROE of {data.fundamentals.profitability.roe}% and a Piotroski F-Score of {data.fundamentals.piotroski.score}/9, based on real filed financials.
+                  {data.smartMoney ? ` Institutional ownership classification: ${data.smartMoney.smartMoneyClassification}.` : ' Ownership data is unavailable for this stock.'}
+                </p>
+              ) : (
+                <p className="bg-slate-900/50 p-4 rounded-xl border border-white/5 text-slate-400">
+                  Data unavailable — no real filed financial statements are integrated for {data.quote.name} yet, so MISS cannot generate a fundamentals-based research thesis. Technical and price data are still available in the other tabs.
+                </p>
+              )}
               <div className="p-4 rounded-xl bg-rose-950/20 border border-rose-500/20 space-y-1">
                 <span className="font-bold text-rose-400 font-mono block">What Could Invalidate This Thesis?</span>
-                <p>• Consecutive quarterly constant-currency revenue deceleration below 6% YoY.</p>
                 <p>• Breakdown below primary technical reference level (Rs. {data.technicals.supportResistance.support1}).</p>
-                <p>• Severe escalation in sector-specific regulatory interventions.</p>
+                {data.fundamentals && (
+                  <p>• Consecutive quarterly revenue or earnings deceleration in future filed statements.</p>
+                )}
               </div>
             </div>
           </GlassCard>

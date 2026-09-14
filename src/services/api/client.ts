@@ -5,6 +5,7 @@ import { MarketOverviewData } from '../../types/market';
 import { NewsArticle } from '../../types/news';
 import { IPOItem } from '../../types/ipo';
 import { ScreenerResultItem } from '../../types/screeners';
+import { FloorsheetAnalysis } from '../../types/broker';
 
 /**
  * Resolves the API URL for the current environment.
@@ -110,6 +111,13 @@ export class ApiClient {
   static async generateReport(symbol: string) {
     const response = await request<{ data: any }>(
       `/api/stocks/${encodeURIComponent(symbol.toUpperCase())}/report`
+    );
+    return response.data;
+  }
+
+  static async getFloorsheetAnalysis(symbol: string): Promise<FloorsheetAnalysis> {
+    const response = await request<{ data: FloorsheetAnalysis }>(
+      `/api/stocks/${encodeURIComponent(symbol.toUpperCase())}/floorsheet`
     );
     return response.data;
   }

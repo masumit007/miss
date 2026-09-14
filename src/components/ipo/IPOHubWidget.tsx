@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { IPOItem } from '../../types/ipo';
 import { GlassCard } from '../common/GlassCard';
-import { Sparkles, Calendar, DollarSign, ArrowRight, CheckCircle2, Clock, Search, ShieldCheck } from 'lucide-react';
+import { Sparkles, ArrowRight, CheckCircle2, ExternalLink } from 'lucide-react';
 
 interface IPOHubWidgetProps {
   ipos: IPOItem[];
@@ -9,25 +9,6 @@ interface IPOHubWidgetProps {
 }
 
 export const IPOHubWidget: React.FC<IPOHubWidgetProps> = ({ ipos, onNavigate }) => {
-  const [boidInput, setBoidInput] = useState('');
-  const [boidResult, setBoidResult] = useState<string | null>(null);
-  const [selectedIpoForCheck, setSelectedIpoForCheck] = useState<string>('');
-
-  const handleCheckAllotment = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!boidInput || boidInput.length < 16) {
-      setBoidResult('Please enter a valid 16-digit BOID/Demat account number.');
-      return;
-    }
-    // Simulation
-    const isAllotted = Math.random() > 0.4;
-    if (isAllotted) {
-      setBoidResult(`🎉 Congratulations! 10 Kitta allotted for BOID ${boidInput}. Allotment verified with CDSC MeroShare.`);
-    } else {
-      setBoidResult(`Sorry, not allotted in the lucky draw lottery. Better luck next time!`);
-    }
-  };
-
   return (
     <GlassCard className="p-4 sm:p-6 space-y-5">
       {/* Top Header */}
@@ -41,7 +22,7 @@ export const IPOHubWidget: React.FC<IPOHubWidgetProps> = ({ ipos, onNavigate }) 
               NEPSE IPO & Primary Market Hub
             </h3>
             <p className="text-[11px] text-slate-400">
-              Live SEBON approved issues, book-building offerings, right shares, and allotment portal
+              Book-building offerings, right shares, and IPO tracking
             </p>
           </div>
         </div>
@@ -57,6 +38,11 @@ export const IPOHubWidget: React.FC<IPOHubWidgetProps> = ({ ipos, onNavigate }) 
       </div>
 
       {/* IPO Cards Grid */}
+      {ipos.length === 0 ? (
+        <div className="py-8 text-center text-slate-500 font-mono text-[11px]">
+          No real IPO data source is connected yet.
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {ipos.slice(0, 3).map((item) => {
           const isOpen = item.status === 'OPEN';
@@ -106,7 +92,7 @@ export const IPOHubWidget: React.FC<IPOHubWidgetProps> = ({ ipos, onNavigate }) 
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-400">Close Date:</span>
-                  <span className="text-slate-300">{item.closeDate || '18 Sep 2026'}</span>
+                  <span className="text-slate-300">{item.closeDate || 'N/A'}</span>
                 </div>
               </div>
 
@@ -118,41 +104,29 @@ export const IPOHubWidget: React.FC<IPOHubWidgetProps> = ({ ipos, onNavigate }) 
           );
         })}
       </div>
+      )}
 
-      {/* Built-in Allotment Result Check Bar */}
+      {/* Allotment check — MISS has no real CDSC connection, so it links
+          out to the official tool rather than simulating a result. */}
       <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/40 via-slate-900/60 to-purple-950/40 border border-cyan-500/20 flex flex-col lg:flex-row items-center justify-between gap-4">
         <div className="space-y-1 text-center lg:text-left">
           <div className="flex items-center justify-center lg:justify-start gap-1.5 text-xs font-mono font-bold text-cyan-300">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Instant MeroShare / CDSC Allotment Checker
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" /> IPO Allotment Result
           </div>
           <p className="text-[11px] text-slate-400">
-            Check your lottery allotment result for recent NEPSE IPOs instantly with your 16-digit Demat / BOID.
+            MISS isn't connected to CDSC's allotment system — check your result on the official site.
           </p>
         </div>
 
-        <form onSubmit={handleCheckAllotment} className="flex flex-col sm:flex-row items-center gap-2 w-full lg:w-auto font-mono">
-          <input
-            type="text"
-            maxLength={16}
-            value={boidInput}
-            onChange={(e) => setBoidInput(e.target.value.replace(/\D/g, ''))}
-            placeholder="Enter 16-digit BOID number..."
-            className="px-3.5 py-2 rounded-xl bg-slate-950 border border-white/15 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-400 w-full sm:w-64"
-          />
-          <button
-            type="submit"
-            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-extrabold text-xs hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap shadow-md"
-          >
-            Check Result
-          </button>
-        </form>
+        <a
+          href="https://meroshare.cdsc.com.np/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-extrabold text-xs hover:opacity-90 transition-opacity cursor-pointer whitespace-nowrap shadow-md"
+        >
+          Check on CDSC MeroShare <ExternalLink className="w-3.5 h-3.5" />
+        </a>
       </div>
-
-      {boidResult && (
-        <div className="p-3 rounded-xl bg-slate-900 border border-cyan-500/30 text-xs font-mono text-cyan-200 text-center animate-fade-in">
-          {boidResult}
-        </div>
-      )}
     </GlassCard>
   );
 };

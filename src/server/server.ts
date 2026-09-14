@@ -454,6 +454,37 @@ app.get(
 
 /*
 |--------------------------------------------------------------------------
+| BROKER / FLOORSHEET ANALYTICS
+|--------------------------------------------------------------------------
+*/
+
+app.get(
+  '/api/stocks/:symbol/floorsheet',
+  async (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const symbol = String(req.params.symbol).trim().toUpperCase();
+      const provider = ProviderFactory.getProvider();
+      const analysis = await provider.getFloorsheetAnalysis(symbol);
+
+      res.json({
+        success: true,
+        data: analysis
+      });
+    } catch (error) {
+      console.error('Floorsheet analysis error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to retrieve floorsheet analysis'
+      });
+    }
+  }
+);
+
+/*
+|--------------------------------------------------------------------------
 | STOCK REPORT
 |--------------------------------------------------------------------------
 */

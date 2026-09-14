@@ -2,36 +2,7 @@ import { AlertRule } from '../../types/alerts';
 
 const STORAGE_KEY = 'miss_alerts_v1';
 
-const DEFAULT_ALERTS: AlertRule[] = [
-  {
-    id: 'alt-1',
-    symbol: 'TCS',
-    triggerType: 'PRICE_CROSS_ABOVE',
-    thresholdValue: 4250,
-    message: 'TCS crosses above Rs. 4,250 resistance zone.',
-    createdAt: '2026-08-28T10:00:00Z',
-    status: 'ACTIVE'
-  },
-  {
-    id: 'alt-2',
-    symbol: 'HDFCBANK',
-    triggerType: 'RSI_OVERSOLD',
-    thresholdValue: 35,
-    message: 'HDFC Bank RSI 14 drops below 35.0 (Near Oversold).',
-    createdAt: '2026-08-27T14:30:00Z',
-    status: 'ACTIVE'
-  },
-  {
-    id: 'alt-3',
-    symbol: 'TATAMOTORS',
-    triggerType: 'RESISTANCE_BREAKOUT',
-    thresholdValue: 1050,
-    message: 'Tata Motors confirms resistance breakout with 1.5x volume expansion.',
-    createdAt: '2026-08-29T09:15:00Z',
-    status: 'TRIGGERED',
-    lastTriggeredAt: '29 Aug 2026 14:10 IST'
-  }
-];
+const DEFAULT_ALERTS: AlertRule[] = [];
 
 export class AlertStore {
   public static getAlerts(): AlertRule[] {

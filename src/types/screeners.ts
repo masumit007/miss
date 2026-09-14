@@ -1,6 +1,7 @@
 import { StockQuote } from './stock';
 import { FullTechnicalAnalysis } from './technicals';
 import { FullFundamentalAnalysis } from './fundamentals';
+import { SmartMoneyAnalysis } from './smartMoney';
 import { MultiFactorScore } from './scoring';
 
 export type ScreenerPresetType = 
@@ -40,6 +41,8 @@ export interface ScreenerResultItem {
   technicals: FullTechnicalAnalysis;
   /** Null when no real filed financials are available for this stock yet. */
   fundamentals: FullFundamentalAnalysis | null;
+  /** Null when no real shareholding disclosures are available for this stock yet. */
+  smartMoney: SmartMoneyAnalysis | null;
   score: MultiFactorScore;
   matchedCriteria: string[];
 }

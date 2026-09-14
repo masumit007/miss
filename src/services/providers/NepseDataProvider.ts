@@ -18,6 +18,8 @@ import {
 } from '../../types/market';
 import { NewsArticle } from '../../types/news';
 import { IPOItem } from '../../types/ipo';
+import { FloorsheetAnalysis } from '../../types/broker';
+import { BrokerEngine } from '../analytics/brokerEngine';
 
 export class NepseDataProvider implements IDataProvider {
   name = 'NEPSE Data Provider';
@@ -108,17 +110,127 @@ export class NepseDataProvider implements IDataProvider {
       advanceDeclineRatio: declines > 0 ? advances / declines : advances,
       newFiftyTwoWeekHighs: 0,
       newFiftyTwoWeekLows: 0,
-      totalTraded: summary.tradedScrips ?? 0
+      totalTraded: summary.tradedScrips ?? 0,
+      totalTurnoverNpr: summary.turnover,
+      totalVolume: summary.volume
     };
   }
 
+  // Real NEPSE sub-index IDs mapped to display names. Sourced directly
+  // from @rumess/nepse-api's IndexIDEnum — not invented.
+  private static readonly SECTOR_INDEX_MAP: Array<{ id: string; name: string }> = [
+    { id: '51', name: 'Commercial Banks' },
+    { id: '55', name: 'Development Banks' },
+    { id: '60', name: 'Finance' },
+    { id: '52', name: 'Hotels & Tourism' },
+    { id: '54', name: 'Hydro Power' },
+    { id: '67', name: 'Investment' },
+    { id: '65', name: 'Life Insurance' },
+    { id: '56', name: 'Manufacturing & Processing' },
+    { id: '64', name: 'Microfinance' },
+    { id: '66', name: 'Mutual Fund' },
+    { id: '59', name: 'Non-Life Insurance' },
+    { id: '53', name: 'Others' },
+    { id: '61', name: 'Trading' }
+  ];
+
   async getSectorPerformances(): Promise<SectorPerformance[]> {
-    /*
-     * Would require historical index series per sector (1D/1W/1M/3M/1Y
-     * change) which isn't wired up yet. Never fabricate momentum/relative
-     * strength labels — return empty until real historical data is joined.
-     */
-    return [];
+    const allStocks = await this.getAllStocks();
+
+    const results = await Promise.all(
+      NepseDataProvider.SECTOR_INDEX_MAP.map(async sector => {
+        const history = await this.scraper.getSectorIndexHistory(sector.id as any);
+
+        if (history.length === 0) {
+          return null;
+        }
+
+        // History is [timestamp, value] pairs, most sources ordered oldest->newest.
+        const sorted = [...history].sort((a, b) => a[0] - b[0]);
+        const latest = sorted[sorted.length - 1];
+        const latestValue = latest[1];
+        const latestTime = latest[0];
+
+        const changeFrom = (daysAgo: number): number | null => {
+          const targetTime = latestTime - daysAgo * 24 * 60 * 60 * 1000;
+          // Find the closest real data point at or before the target time.
+          let closest: [number, number] | null = null;
+          for (const point of sorted) {
+            if (point[0] <= targetTime) closest = point;
+            else break;
+          }
+          if (!closest || closest[1] === 0) return null;
+          return Math.round(((latestValue - closest[1]) / closest[1]) * 1000) / 10;
+        };
+
+        const oneDayChange = changeFrom(1);
+        const oneWeekChange = changeFrom(7);
+        const oneMonthChange = changeFrom(30);
+        const threeMonthChange = changeFrom(90);
+        const oneYearChange = changeFrom(365);
+
+        // Real top mover within this sector, from real live quotes.
+        const sectorStocks = allStocks.filter(s => s.sector === sector.name);
+        const topStock = sectorStocks.length
+          ? sectorStocks.reduce((best, s) => (s.dayChangePercent > best.dayChangePercent ? s : best))
+          : null;
+
+        const momentumBasis = oneMonthChange ?? oneWeekChange ?? oneDayChange;
+        const momentum: SectorPerformance['momentum'] =
+          momentumBasis === null ? 'Neutral'
+            : momentumBasis >= 8 ? 'Strong Bullish'
+            : momentumBasis >= 2 ? 'Bullish'
+            : momentumBasis <= -8 ? 'Strong Bearish'
+            : momentumBasis <= -2 ? 'Bearish'
+            : 'Neutral';
+
+        const perf: SectorPerformance = {
+          name: sector.name,
+          oneDayChange,
+          oneWeekChange,
+          oneMonthChange,
+          threeMonthChange,
+          oneYearChange,
+          momentum,
+          // Real NEPSE-index-vs-sector comparison requires the primary
+          // NEPSE index's own change over the same window, computed below.
+          relativeStrengthVsNepse: 'In-line',
+          topStockSymbol: topStock?.symbol ?? null,
+          topStockGain: topStock?.dayChangePercent ?? null
+        };
+
+        return perf;
+      })
+    );
+
+    const sectors = results.filter((s): s is SectorPerformance => s !== null);
+
+    // Now that we have all sector 1M changes, compute the real NEPSE
+    // index's own 1M change once and use it to set relative strength.
+    const nepseHistory = await this.scraper.getSectorIndexHistory('58' as any);
+    if (nepseHistory.length > 0) {
+      const sorted = [...nepseHistory].sort((a, b) => a[0] - b[0]);
+      const latest = sorted[sorted.length - 1];
+      const targetTime = latest[0] - 30 * 24 * 60 * 60 * 1000;
+      let closest: [number, number] | null = null;
+      for (const point of sorted) {
+        if (point[0] <= targetTime) closest = point;
+        else break;
+      }
+      const nepse1M = closest && closest[1] !== 0 ? ((latest[1] - closest[1]) / closest[1]) * 100 : null;
+
+      if (nepse1M !== null) {
+        for (const s of sectors) {
+          if (s.oneMonthChange === null) continue;
+          s.relativeStrengthVsNepse =
+            s.oneMonthChange > nepse1M + 1 ? 'Outperforming'
+              : s.oneMonthChange < nepse1M - 1 ? 'Underperforming'
+              : 'In-line';
+        }
+      }
+    }
+
+    return sectors;
   }
 
   async getInstitutionalFlows(): Promise<InstitutionalActivity[]> {
@@ -208,6 +320,11 @@ export class NepseDataProvider implements IDataProvider {
 
   async getBulkBlockDeals(_symbol: string): Promise<BulkBlockDeal[]> {
     return [];
+  }
+
+  async getFloorsheetAnalysis(symbol: string): Promise<FloorsheetAnalysis> {
+    const rows = await this.scraper.getFloorsheetRows(symbol);
+    return BrokerEngine.analyze(symbol.trim().toUpperCase(), rows);
   }
 
   async getMarketNews(_category?: string): Promise<NewsArticle[]> {

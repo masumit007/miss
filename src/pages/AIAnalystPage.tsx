@@ -12,7 +12,7 @@ export const AIAnalystPage: React.FC<{ initialPrompt?: string }> = ({ initialPro
       id: 'welcome',
       sender: 'assistant',
       timestamp: new Date().toISOString(),
-      text: `👋 **Welcome to MISS AI Stock Analyst** (Built by Sumit).\n\nI am connected directly to the MISS quantitative engine, technical calculations, balance sheet databases, and exchange filings for **NSE & BSE equities**.\n\nAsk me anything about a company, comparative valuations, support/resistance zones, or classic investment frameworks (Buffett, CANSLIM, Piotroski, Graham).`
+      text: `👋 **Welcome to MISS AI Stock Analyst** (Built by Sumit).\n\nI'm connected to the MISS quantitative engine, technical calculations, and live NEPSE market feed for **NEPSE-listed equities only**. Fundamental/ownership data is shown only when a real filed source is available for that stock.\n\nAsk me anything about a company, comparative valuations, support/resistance zones, or classic investment frameworks (Buffett, CANSLIM, Piotroski, Graham).`
     }
   ]);
   const [input, setInput] = useState(initialPrompt);
@@ -20,11 +20,11 @@ export const AIAnalystPage: React.FC<{ initialPrompt?: string }> = ({ initialPro
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const samplePrompts = [
-    'Analyze TCS in detail',
-    'Is RELIANCE a good stock?',
-    'Compare TCS and Infosys',
+    'Analyze NABIL in detail',
+    'Is UPPER a good stock?',
+    'Compare NABIL and GBIME',
     'Which stocks are near support?',
-    'Analyze Tata Motors using CANSLIM',
+    'Analyze SHIVM using CANSLIM',
     'Find fundamentally strong stocks with low debt'
   ];
 
@@ -168,7 +168,7 @@ export const AIAnalystPage: React.FC<{ initialPrompt?: string }> = ({ initialPro
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask MISS AI about any NSE/BSE stock (e.g. Is TCS a good stock?)..."
+          placeholder="Ask MISS AI about any NEPSE stock (e.g. Is NABIL a good stock?)..."
           className="flex-1 px-4 py-3 rounded-2xl bg-slate-900 border border-white/15 text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:border-cyan-500/50"
         />
         <button

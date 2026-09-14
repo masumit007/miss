@@ -44,6 +44,13 @@ export const SmartMoneyPage: React.FC<{ onSelectStock: (symbol: string) => void 
 
         {loading ? (
           <div className="py-12 text-center text-slate-400 font-mono text-xs">Tracking institutional transactions...</div>
+        ) : items.length === 0 ? (
+          <div className="py-12 text-center text-slate-400 font-mono text-xs">
+            Smart Money data unavailable from configured sources.
+            <div className="text-[10px] text-slate-500 mt-2 max-w-md mx-auto">
+              MISS does not have a real NEPSE shareholding-disclosure source wired up yet, so institutional ownership figures cannot be shown. This is not a bug — real filed data is required before this page can display anything, and MISS never substitutes estimated or generic values.
+            </div>
+          </div>
         ) : (
           <table className="w-full text-xs text-left border-collapse font-mono">
             <thead>
@@ -71,14 +78,14 @@ export const SmartMoneyPage: React.FC<{ onSelectStock: (symbol: string) => void 
                     <span className="text-[10px] text-slate-400 font-sans block line-clamp-1">{it.quote.name}</span>
                   </td>
                   <td className="p-3 font-bold text-white">Rs. {it.quote.currentPrice}</td>
-                  <td className="p-3 font-bold text-white">{it.quote.sharesOutstanding ? '24.8%' : '20.0%'}</td>
-                  <td className="p-3 font-bold text-emerald-400">+0.65%</td>
-                  <td className="p-3 font-bold text-white">14.6%</td>
-                  <td className="p-3 font-bold text-emerald-400">+0.35%</td>
-                  <td className="p-3 text-emerald-400 font-bold">0.0%</td>
-                  <td className="p-3 font-bold text-cyan-300">{it.quote.deliveryPercentage}%</td>
+                  <td className="p-3 font-bold text-white">{it.smartMoney ? `${it.smartMoney.latestForeignHolding}%` : 'N/A'}</td>
+                  <td className={`p-3 font-bold ${it.smartMoney && it.smartMoney.foreignChangeQoQ >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{it.smartMoney ? `${it.smartMoney.foreignChangeQoQ > 0 ? '+' : ''}${it.smartMoney.foreignChangeQoQ}%` : 'N/A'}</td>
+                  <td className="p-3 font-bold text-white">{it.smartMoney ? `${it.smartMoney.latestInstitutionalHolding}%` : 'N/A'}</td>
+                  <td className={`p-3 font-bold ${it.smartMoney && it.smartMoney.institutionalChangeQoQ >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{it.smartMoney ? `${it.smartMoney.institutionalChangeQoQ > 0 ? '+' : ''}${it.smartMoney.institutionalChangeQoQ}%` : 'N/A'}</td>
+                  <td className="p-3 font-bold text-white">{it.smartMoney ? `${it.smartMoney.latestPromoterPledged}%` : 'N/A'}</td>
+                  <td className="p-3 font-bold text-cyan-300">{it.quote.deliveryPercentage !== null && it.quote.deliveryPercentage !== undefined ? `${it.quote.deliveryPercentage}%` : 'N/A'}</td>
                   <td className="p-3">
-                    <SignalBadge signal="ACCUMULATION" size="sm" />
+                    {it.smartMoney ? <SignalBadge signal={it.smartMoney.smartMoneyClassification} size="sm" /> : <span className="text-slate-500">N/A</span>}
                   </td>
                 </tr>
               ))}

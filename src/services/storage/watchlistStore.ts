@@ -12,25 +12,7 @@ const DEFAULT_WATCHLISTS: WatchlistGroup[] = [
     id: 'wl-default',
     name: 'My Watchlist',
     isAiGenerated: false,
-    symbols: ['RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK', 'TATAMOTORS']
-  },
-  {
-    id: 'wl-longterm',
-    name: 'Long Term Quality',
-    isAiGenerated: false,
-    symbols: ['TCS', 'ITC', 'TITAN', 'SUNPHARMA', 'LT']
-  },
-  {
-    id: 'wl-breakouts',
-    name: 'Breakout Watch',
-    isAiGenerated: true,
-    symbols: ['TRENT', 'BEL', 'TATAMOTORS', 'BHARTIARTL']
-  },
-  {
-    id: 'wl-support',
-    name: 'Support & Oversold Watch',
-    isAiGenerated: true,
-    symbols: ['HDFCBANK', 'TITAN', 'ITC']
+    symbols: []
   }
 ];
 

@@ -204,20 +204,20 @@ export const MarketsPage: React.FC<{ onSelectStock: (symbol: string) => void }> 
       {activeTab === 'sectors' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sectors.map((s) => {
-            const isPos = s.oneDayChange >= 0;
+            const isPos = (s.oneDayChange ?? 0) >= 0;
             return (
               <GlassCard key={s.name} className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-white text-sm font-mono">{s.name}</span>
                   <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-lg ${isPos ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
-                    {isPos ? '+' : ''}{s.oneDayChange}%
+                    {s.oneDayChange !== null ? `${isPos ? '+' : ''}${s.oneDayChange}%` : 'N/A'}
                   </span>
                 </div>
 
                 <div className="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${isPos ? 'bg-emerald-400' : 'bg-rose-500'}`}
-                    style={{ width: `${Math.min(100, Math.abs(s.oneDayChange) * 20 + 20)}%` }}
+                    style={{ width: `${Math.min(100, Math.abs(s.oneDayChange ?? 0) * 20 + 20)}%` }}
                   />
                 </div>
 
@@ -225,10 +225,10 @@ export const MarketsPage: React.FC<{ onSelectStock: (symbol: string) => void }> 
                   <div className="flex justify-between">
                     <span className="text-slate-400">Leading Stock:</span> 
                     <span 
-                      onClick={() => onSelectStock(s.topStockSymbol)}
+                      onClick={() => s.topStockSymbol && onSelectStock(s.topStockSymbol)}
                       className="text-cyan-400 font-bold hover:underline cursor-pointer flex items-center gap-0.5"
                     >
-                      {s.topStockSymbol} (+{s.topStockGain}%) <ArrowUpRight className="w-3 h-3" />
+                      {s.topStockSymbol ? `${s.topStockSymbol} (+${s.topStockGain}%)` : 'N/A'} <ArrowUpRight className="w-3 h-3" />
                     </span>
                   </div>
                   <div className="flex justify-between"><span className="text-slate-400">Momentum:</span> <span className="text-cyan-300">{s.momentum}</span></div>

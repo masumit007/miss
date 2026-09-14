@@ -18,6 +18,7 @@ import {
 } from '../../types/market';
 import { NewsArticle } from '../../types/news';
 import { IPOItem } from '../../types/ipo';
+import { FloorsheetAnalysis } from '../../types/broker';
 
 /*
 |--------------------------------------------------------------------------
@@ -136,7 +137,9 @@ export class MockDataProvider implements IDataProvider {
       advanceDeclineRatio: 1.23,
       newFiftyTwoWeekHighs: 4,
       newFiftyTwoWeekLows: 2,
-      totalTraded: 186
+      totalTraded: 186,
+      totalTurnoverNpr: 4360000000,
+      totalVolume: 12100000
     };
   }
 
@@ -250,6 +253,21 @@ export class MockDataProvider implements IDataProvider {
 
   async getBulkBlockDeals(_symbol: string): Promise<BulkBlockDeal[]> {
     return [];
+  }
+
+  async getFloorsheetAnalysis(symbol: string): Promise<FloorsheetAnalysis> {
+    return {
+      symbol: symbol.toUpperCase(),
+      transactionsAnalyzed: 0,
+      totalQuantity: 0,
+      totalValueNpr: 0,
+      brokerActivity: [],
+      top3BrokerConcentrationPercent: 0,
+      largeTransactions: [],
+      signal: 'Insufficient Data',
+      source: 'MISS Demo Dataset (not real floorsheet data)',
+      retrievedAt: new Date().toISOString()
+    };
   }
 
   async getMarketNews(_category?: string): Promise<NewsArticle[]> {

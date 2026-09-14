@@ -26,19 +26,11 @@ export const IPOPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
 
-  // CDSC Allotment Checker state
-  const [boid, setBoid] = useState('');
-  const [selectedIpoId, setSelectedIpoId] = useState('');
-  const [checkResult, setCheckResult] = useState<{ status: 'success' | 'failed' | 'invalid'; message: string } | null>(null);
-
   useEffect(() => {
     async function load() {
       try {
         const data = await ApiClient.getIPOs();
         setIpos(data);
-        if (data.length > 0) {
-          setSelectedIpoId(data[0].id);
-        }
       } catch (e) {
         console.error('Failed to load IPO data:', e);
       } finally {
@@ -57,49 +49,29 @@ export const IPOPage: React.FC = () => {
     });
   }, [ipos, activeStatus, searchQuery]);
 
-  const handleAllotmentCheck = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!boid || boid.length < 16) {
-      setCheckResult({
-        status: 'invalid',
-        message: 'Please enter a valid 16-digit BOID number.'
-      });
-      return;
-    }
-    const isAllotted = Math.random() > 0.45;
-    if (isAllotted) {
-      setCheckResult({
-        status: 'success',
-        message: `🎉 Allotment Confirmed: 10 Kitta allotted for BOID ${boid}. Transfer recorded by CDSC MeroShare.`
-      });
-    } else {
-      setCheckResult({
-        status: 'failed',
-        message: `❌ Not Allotted: Your BOID ${boid} was not selected in the computerized lottery draw.`
-      });
-    }
-  };
-
   return (
     <div className="space-y-7 animate-fade-in pb-12">
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl p-6 sm:p-8 border border-white/10 bg-gradient-to-br from-slate-900/90 via-[#0e1626]/90 to-[#080b11]/90 shadow-2xl backdrop-blur-xl">
         <div className="relative z-10 max-w-3xl space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-semibold">
-            <Sparkles className="w-3.5 h-3.5" /> SEBON & HamroShare Primary Market Feed
+            <Sparkles className="w-3.5 h-3.5" /> IPO / Rights / Debenture Tracker
           </div>
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white font-mono tracking-tight">
             Nepal Stock Exchange (NEPSE) IPO Portal
           </h1>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-2xl">
-            Live pipeline of upcoming, active, and book-building IPOs, right shares, debentures, and mutual funds approved by <strong className="text-white">SEBON</strong> and listed on <strong className="text-white">NEPSE</strong>.
+            Tracks upcoming, active, and book-building IPOs, right shares, debentures, and mutual funds on <strong className="text-white">NEPSE</strong>. MISS shows this data only when a real, verified source is connected — see the note below if the list is empty.
           </p>
         </div>
       </div>
 
       <DisclaimerBanner />
 
-      {/* MeroShare / CDSC Live Allotment Result Lookup Tool */}
+      {/* MeroShare / CDSC Official Allotment Verification — MISS does not
+          have a real, legitimate connection to CDSC's allotment system, so
+          it never simulates or predicts a result. Users are sent to the
+          actual official tool instead. */}
       <GlassCard className="p-5 sm:p-6 space-y-4 border-cyan-500/30 bg-gradient-to-br from-cyan-950/20 to-slate-900/80">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
@@ -108,67 +80,30 @@ export const IPOPage: React.FC = () => {
             </div>
             <div>
               <h3 className="text-sm sm:text-base font-extrabold text-white font-mono">
-                CDSC MeroShare IPO Allotment Result Checker
+                IPO Allotment Result Checker
               </h3>
               <p className="text-[11px] text-slate-400">
-                Check your computerized lottery allotment result for recent NEPSE issues
+                MISS is not connected to CDSC's allotment system — verify your result on the official site below.
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40">
-            DIRECT CDSC FEED
+          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-500/40">
+            NOT AVAILABLE IN MISS
           </span>
         </div>
 
-        <form onSubmit={handleAllotmentCheck} className="grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono">
-          <div>
-            <label className="text-[10px] text-slate-400 uppercase font-bold block mb-1">Select Issue Company</label>
-            <select
-              value={selectedIpoId}
-              onChange={(e) => setSelectedIpoId(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white text-xs focus:outline-none focus:border-cyan-400"
-            >
-              {ipos.map((ipo) => (
-                <option key={ipo.id} value={ipo.id} className="bg-slate-900 text-white">
-                  {ipo.symbol} — {ipo.companyName}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="p-4 rounded-xl border border-white/10 bg-slate-950/60 text-xs font-mono text-slate-300 leading-relaxed">
+          MISS does not have a verified, legitimate connection to CDSC's allotment lottery system, so it cannot check or predict your allotment result. Please verify directly through the official source:
+        </div>
 
-          <div>
-            <label className="text-[10px] text-slate-400 uppercase font-bold block mb-1">16-Digit BOID / Demat No.</label>
-            <input
-              type="text"
-              maxLength={16}
-              value={boid}
-              onChange={(e) => setBoid(e.target.value.replace(/\D/g, ''))}
-              placeholder="e.g. 1301010000000000"
-              className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-white/15 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-cyan-400"
-            />
-          </div>
-
-          <div className="flex items-end">
-            <button
-              type="submit"
-              className="w-full py-2 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-extrabold text-xs hover:opacity-95 transition-all cursor-pointer shadow-md"
-            >
-              Check Allotment Result
-            </button>
-          </div>
-        </form>
-
-        {checkResult && (
-          <div className={`p-3 rounded-xl border text-xs font-mono animate-fade-in ${
-            checkResult.status === 'success'
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-              : checkResult.status === 'failed'
-              ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-              : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-          }`}>
-            {checkResult.message}
-          </div>
-        )}
+        <a
+          href="https://meroshare.cdsc.com.np/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-500 text-slate-950 font-extrabold text-xs hover:opacity-95 transition-all cursor-pointer shadow-md"
+        >
+          Check on Official CDSC MeroShare <ExternalLink className="w-3.5 h-3.5" />
+        </a>
       </GlassCard>
 
       {/* Filter Toolbar */}
@@ -224,11 +159,13 @@ export const IPOPage: React.FC = () => {
       {/* IPO Cards Grid */}
       {loading ? (
         <div className="py-16 text-center text-slate-400 font-mono text-xs">
-          Loading HamroShare & SEBON IPO pipeline...
+          Loading IPO data...
         </div>
       ) : filteredIPOs.length === 0 ? (
-        <div className="py-16 text-center text-slate-500 font-mono text-xs">
-          No IPOs found matching current filter criteria.
+        <div className="py-16 text-center text-slate-500 font-mono text-xs max-w-md mx-auto">
+          {ipos.length === 0
+            ? 'No real IPO/rights/debenture data source is connected yet — NOT IMPLEMENTABLE WITH CURRENT VERIFIED SOURCES. This list will populate once a legitimate SEBON/NEPSE primary-market source is integrated.'
+            : 'No IPOs found matching current filter criteria.'}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
