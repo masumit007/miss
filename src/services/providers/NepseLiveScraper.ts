@@ -1,5 +1,5 @@
 import { NepseClient } from '../nepse/NepseClient';
-import { normalizeQuote, normalizeOHLCV } from '../nepse/NepseNormalizer';
+import { normalizeQuote, normalizeOHLCV, extractSecurityDetailsPatch } from '../nepse/NepseNormalizer';
 import { StockQuote, OHLCV } from '../../types/stock';
 
 export interface MarketMover {
@@ -95,6 +95,36 @@ export class NepseLiveScraper {
     return sector ? { ...quote, sector } : quote;
   }
 
+  /**
+   * Fills in fields the live-market feed alone doesn't carry (52-week
+   * high/low, ISIN, face value, market cap, listed shares, industry)
+   * using the real getSecurityDetails() endpoint. Only used for
+   * single-symbol lookups (stock detail page) — deliberately NOT applied
+   * to getAllQuotes(), since that would mean one extra NEPSE round-trip
+   * per stock on a full-listing request.
+   *
+   * If the details call fails for any reason, the original quote is
+   * returned unchanged rather than the whole lookup failing — this is a
+   * genuine enrichment, not a required field.
+   */
+  private async enrichSecurityDetails(quote: StockQuote): Promise<StockQuote> {
+    try {
+      const details = await this.client.getSecurityDetails(quote.symbol);
+      const patch = extractSecurityDetailsPatch(details);
+
+      return {
+        ...quote,
+        ...patch,
+        // Only use the details endpoint's industry as a sector fallback —
+        // never overwrite a sector the live feed already gave us.
+        sector: quote.sector ?? patch.industry ?? quote.sector
+      };
+    } catch (error) {
+      console.error(`getSecurityDetails enrichment failed for ${quote.symbol}:`, error);
+      return quote;
+    }
+  }
+
   async getLiveMarketSummary(): Promise<MarketSummary> {
     const [summaryRaw, indices, gainersRaw, losersRaw] = await Promise.all([
       this.client.getMarketSummary(),
@@ -156,7 +186,12 @@ export class NepseLiveScraper {
 
     const quote = found ? normalizeQuote(found) : null;
 
-    return quote ? this.enrichSector(quote) : null;
+    if (!quote) {
+      return null;
+    }
+
+    const withSector = await this.enrichSector(quote);
+    return this.enrichSecurityDetails(withSector);
   }
 
   async getAllQuotes(): Promise<StockQuote[]> {

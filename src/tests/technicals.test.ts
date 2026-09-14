@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { TechnicalEngine } from '../services/analytics/technicalEngine';
-import { NepseDataProvider } from '../services/providers/NepseDataProvider';
+import { MockDataProvider } from '../services/providers/MockDataProvider';
 
 describe('TechnicalEngine Mathematical Calculations (NEPSE)', () => {
-  const provider = new NepseDataProvider();
+  const provider = new MockDataProvider();
 
   it('calculates SMA correctly', () => {
     const prices = [10, 20, 30, 40, 50];

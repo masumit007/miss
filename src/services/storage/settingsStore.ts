@@ -37,10 +37,37 @@ export const DEFAULT_SETTINGS: SystemConfiguration = {
   }
 };
 
+// `localStorage` only exists in the browser. This module is also imported
+// server-side (src/server/server.ts, running on Node/Vercel), where
+// `localStorage` is undefined and would throw a ReferenceError on every
+// access. Detect the environment once and fall back to a module-level
+// in-memory object on the server, so settings actually persist for the
+// lifetime of the running instance instead of silently no-op'ing.
+const hasBrowserStorage =
+  typeof globalThis !== 'undefined' &&
+  typeof (globalThis as any).localStorage !== 'undefined';
+
+let memoryStore: string | null = null;
+
+function readRaw(): string | null {
+  if (hasBrowserStorage) {
+    return (globalThis as any).localStorage.getItem(STORAGE_KEY);
+  }
+  return memoryStore;
+}
+
+function writeRaw(value: string): void {
+  if (hasBrowserStorage) {
+    (globalThis as any).localStorage.setItem(STORAGE_KEY, value);
+    return;
+  }
+  memoryStore = value;
+}
+
 export class SettingsStore {
   public static getSettings(): SystemConfiguration {
     try {
-      const data = localStorage.getItem(STORAGE_KEY);
+      const data = readRaw();
       if (data) {
         const parsed = JSON.parse(data);
         parsed.developerContribution.upiId = '9841199810';
@@ -56,7 +83,7 @@ export class SettingsStore {
 
   public static saveSettings(settings: SystemConfiguration): void {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      writeRaw(JSON.stringify(settings));
     } catch (e) {
       console.error(e);
     }

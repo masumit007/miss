@@ -198,6 +198,68 @@ export function normalizeQuote(raw: any): StockQuote | null {
 
 /*
 |--------------------------------------------------------------------------
+| SECURITY DETAILS ENRICHMENT
+|--------------------------------------------------------------------------
+| NEPSE's live market feed (used by normalizeQuote above) does not carry
+| 52-week high/low, ISIN, face value, market cap, listed shares, or
+| industry — but a separate, real endpoint (getSecurityDetails) does have
+| several of these. This merges that real data onto an already-normalized
+| quote. Still no fabrication: any field genuinely absent from the
+| response is left as null rather than guessed.
+*/
+export function extractSecurityDetailsPatch(raw: any): Partial<StockQuote> {
+  if (!raw || typeof raw !== 'object') {
+    return {};
+  }
+
+  const dailyTrade =
+    raw.securityDailyTradeDto && typeof raw.securityDailyTradeDto === 'object'
+      ? raw.securityDailyTradeDto
+      : null;
+
+  const security =
+    raw.security && typeof raw.security === 'object' ? raw.security : null;
+
+  const company =
+    security?.companyId && typeof security.companyId === 'object'
+      ? security.companyId
+      : null;
+
+  const sectorMaster =
+    company?.sectorMaster && typeof company.sectorMaster === 'object'
+      ? company.sectorMaster
+      : null;
+
+  const patch: Partial<StockQuote> = {};
+
+  const fiftyTwoWeekHigh = toNumber(get(dailyTrade, ['fiftyTwoWeekHigh']));
+  if (fiftyTwoWeekHigh !== null) patch.fiftyTwoWeekHigh = fiftyTwoWeekHigh;
+
+  const fiftyTwoWeekLow = toNumber(get(dailyTrade, ['fiftyTwoWeekLow']));
+  if (fiftyTwoWeekLow !== null) patch.fiftyTwoWeekLow = fiftyTwoWeekLow;
+
+  const isin = toString(get(security, ['isin']));
+  if (isin) patch.isin = isin;
+
+  const faceValue = toNumber(get(security, ['faceValue']));
+  if (faceValue !== null) patch.faceValue = faceValue;
+
+  const sharesOutstanding = toNumber(get(raw, ['stockListedShares']));
+  if (sharesOutstanding !== null) patch.sharesOutstanding = sharesOutstanding;
+
+  const marketCap = toNumber(get(raw, ['marketCapitalization']));
+  if (marketCap !== null) patch.marketCap = marketCap;
+
+  const industry = toString(get(sectorMaster, ['sectorDescription']));
+  if (industry) {
+    patch.industry = industry;
+  }
+
+  return patch;
+}
+
+/*
+|--------------------------------------------------------------------------
 | OHLCV NORMALIZER
 |--------------------------------------------------------------------------
 */

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { ScreenerEngine } from '../services/analytics/screenerEngine';
-import { NepseDataProvider } from '../services/providers/NepseDataProvider';
+import { MockDataProvider } from '../services/providers/MockDataProvider';
 
 describe('ScreenerEngine Presets & AI Query Translation (NEPSE)', () => {
-  const provider = new NepseDataProvider();
+  const provider = new MockDataProvider();
 
   it('runs preset screeners across NEPSE stock universe', async () => {
     const breakouts = await ScreenerEngine.runScreener(provider, 'breakout');

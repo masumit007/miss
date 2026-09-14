@@ -2,24 +2,40 @@
  * Vercel Serverless Handler for MISS Backend
  *
  * This file serves as the entry point for Vercel's serverless execution.
- * It wraps the Express application, pre-bundled into a single self-contained
- * file (api/_server-bundle.mjs) by `npm run build:api` at build time, so
- * there are no runtime relative-import lookups left for Node's strict ESM
- * resolver to fail on.
+ * It wraps the Express application configured in src/server/server.ts
+ * and handles incoming HTTP requests.
  *
  * For local development, run: npm run server
  * For Vercel deployment, this file is automatically invoked.
  */
 
 import { VercelRequest, VercelResponse } from '@vercel/node';
-import app from './_server-bundle.mjs';
+import app from '../src/server/server';
+
+// Mirrors the CORS_ORIGIN logic in src/server/server.ts so preflight
+// (OPTIONS) requests are restricted the same way actual GET/POST requests
+// are — previously this always echoed back whatever Origin the caller
+// sent, regardless of the CORS_ORIGIN env var.
+function resolveAllowedOrigin(requestOrigin: string | undefined): string {
+  const configured = process.env.CORS_ORIGIN;
+  if (!configured) {
+    return '*';
+  }
+  const allowedOrigins = configured.split(',').map(o => o.trim());
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+  return allowedOrigins[0];
+}
 
 // Vercel serverless handler
 export default (req: VercelRequest, res: VercelResponse) => {
   // Handle preflight CORS requests
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader(
+      'Access-Control-Allow-Origin',
+      resolveAllowedOrigin(req.headers.origin as string | undefined)
+    );
     res.setHeader(
       'Access-Control-Allow-Methods',
       'GET,OPTIONS,PATCH,DELETE,POST,PUT'

@@ -45,7 +45,19 @@ export class TechnicalEngine {
   /**
    * Calculates Relative Strength Index (RSI) with 14 periods
    */
-  public static calculateRSI(closes: number[], period = 14): RsiData {
+  public static calculateRSI(
+    closes: number[],
+    period = 14,
+    overbought = 70,
+    oversold = 30
+  ): RsiData {
+    // "Near" bands sit a fixed 5 points inside the configured
+    // overbought/oversold thresholds — this reproduces the previous
+    // hardcoded 65/35 bands exactly when overbought/oversold are left at
+    // their 70/30 defaults, while still responding to a configured value.
+    const nearOverbought = overbought - 5;
+    const nearOversold = oversold + 5;
+
     if (closes.length <= period) {
       return {
         period,
@@ -90,22 +102,22 @@ export class TechnicalEngine {
     let signal: RsiData['signal'] = 'Neutral';
     let explanation = 'RSI is within balanced neutral territory (35.0 - 64.9).';
 
-    if (currentRsi >= 70) {
+    if (currentRsi >= overbought) {
       classification = 'OVERBOUGHT';
       signal = 'Bearish/Caution';
       explanation = 'Overbought indicates strong recent momentum and may also persist during strong uptrends. Oversold does not guarantee a reversal.';
-    } else if (currentRsi >= 65 && currentRsi < 70) {
+    } else if (currentRsi >= nearOverbought && currentRsi < overbought) {
       classification = 'NEAR_OVERBOUGHT';
       signal = 'Caution/Extended';
-      explanation = 'RSI is approaching overbought threshold (65.0 - 69.9). Upward momentum is robust but extended.';
-    } else if (currentRsi <= 30) {
+      explanation = `RSI is approaching overbought threshold (${nearOverbought.toFixed(1)} - ${(overbought - 0.1).toFixed(1)}). Upward momentum is robust but extended.`;
+    } else if (currentRsi <= oversold) {
       classification = 'OVERSOLD';
       signal = 'Oversold Opportunity';
-      explanation = 'RSI is oversold (<=30.0), showing deep short-term selling. Oversold does not guarantee immediate price reversal.';
-    } else if (currentRsi > 30 && currentRsi <= 35) {
+      explanation = `RSI is oversold (<=${oversold.toFixed(1)}), showing deep short-term selling. Oversold does not guarantee immediate price reversal.`;
+    } else if (currentRsi > oversold && currentRsi <= nearOversold) {
       classification = 'NEAR_OVERSOLD';
       signal = 'Bullish/Reversal Opportunity';
-      explanation = 'RSI is entering near-oversold territory (30.1 - 35.0), indicating fading selling velocity.';
+      explanation = `RSI is entering near-oversold territory (${(oversold + 0.1).toFixed(1)} - ${nearOversold.toFixed(1)}), indicating fading selling velocity.`;
     }
 
     return {
@@ -610,11 +622,25 @@ export class TechnicalEngine {
   /**
    * Produces Full Technical Analysis Object
    */
-  public static performFullAnalysis(quote: StockQuote, candles: OHLCV[]): FullTechnicalAnalysis {
+  public static performFullAnalysis(
+    quote: StockQuote,
+    candles: OHLCV[],
+    thresholds?: {
+      rsiOverbought?: number;
+      rsiOversold?: number;
+      stochasticOverbought?: number;
+      stochasticOversold?: number;
+    }
+  ): FullTechnicalAnalysis {
     const closes = candles.map(c => c.close);
     const currentPrice = quote.currentPrice;
 
-    const rsi = this.calculateRSI(closes, 14);
+    const rsiOverbought = thresholds?.rsiOverbought ?? 70;
+    const rsiOversold = thresholds?.rsiOversold ?? 30;
+    const stochOverbought = thresholds?.stochasticOverbought ?? 80;
+    const stochOversold = thresholds?.stochasticOversold ?? 20;
+
+    const rsi = this.calculateRSI(closes, 14, rsiOverbought, rsiOversold);
     const macd = this.calculateMACD(closes, 12, 26, 9);
     const movingAverages = this.calculateMovingAverages(closes, currentPrice);
     const bollingerBands = this.calculateBollingerBands(closes, currentPrice, 20, 2);
@@ -633,9 +659,9 @@ export class TechnicalEngine {
     const stochastic: StochasticData = {
       k,
       d,
-      status: k > 80 ? 'OVERBOUGHT' : k < 20 ? 'OVERSOLD' : 'NEUTRAL',
+      status: k > stochOverbought ? 'OVERBOUGHT' : k < stochOversold ? 'OVERSOLD' : 'NEUTRAL',
       crossover: k > d ? 'Bullish Crossover' : k < d ? 'Bearish Crossover' : 'None',
-      explanation: `%K at ${k}, %D at ${d}. ${k > 80 ? 'Overbought oscillator territory.' : k < 20 ? 'Oversold oscillator territory.' : 'Neutral momentum.'}`
+      explanation: `%K at ${k}, %D at ${d}. ${k > stochOverbought ? 'Overbought oscillator territory.' : k < stochOversold ? 'Oversold oscillator territory.' : 'Neutral momentum.'}`
     };
 
     // ROC (14)

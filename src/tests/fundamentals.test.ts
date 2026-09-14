@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { FrameworkEngines } from '../services/analytics/frameworkEngines';
 import { FundamentalEngine } from '../services/analytics/fundamentalEngine';
-import { NepseDataProvider } from '../services/providers/NepseDataProvider';
+import { MockDataProvider } from '../services/providers/MockDataProvider';
 import { FinancialYearData } from '../types/fundamentals';
 
 describe('FundamentalEngine & Classical Frameworks (NEPSE)', () => {
-  const provider = new NepseDataProvider();
+  const provider = new MockDataProvider();
 
   it('evaluates all 9 criteria of Piotroski F-Score', () => {
     const history: FinancialYearData[] = [

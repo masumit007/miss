@@ -23,10 +23,15 @@ const app = express();
 
 const PORT = Number(process.env.PORT || 3001);
 
-// CORS configuration for production-safe deployment
+// CORS configuration for production-safe deployment.
+// `credentials: true` is intentionally omitted: nothing in this app uses
+// cookie-based auth, and browsers reject the combination of
+// `Access-Control-Allow-Credentials: true` with a wildcard
+// `Access-Control-Allow-Origin: *` anyway, which is what a default,
+// unconfigured deployment (no CORS_ORIGIN env var set) would otherwise send.
 const corsOptions = {
   origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : '*',
-  credentials: true,
+  credentials: false,
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type']
 };
@@ -35,6 +40,37 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 const provider = ProviderFactory.getProvider();
+
+/**
+ * Reads the admin-configured settings and converts them into the shapes
+ * TechnicalEngine / ScoringEngine actually expect, so changes made in the
+ * Admin panel take effect instead of every analysis call silently using
+ * each engine's own hardcoded defaults.
+ */
+function getEngineConfig() {
+  const settings = SettingsStore.getSettings();
+
+  const technicalThresholds = {
+    rsiOverbought: settings.technicalThresholds.rsiOverbought,
+    rsiOversold: settings.technicalThresholds.rsiOversold,
+    stochasticOverbought: settings.technicalThresholds.stochasticOverbought,
+    stochasticOversold: settings.technicalThresholds.stochasticOversold
+  };
+
+  // SettingsStore stores weights on a 0-100 scale; ScoringEngine expects
+  // 0-1 fractions of the total.
+  const w = settings.scoringWeights;
+  const scoringWeights = {
+    fundamentals: w.fundamentals / 100,
+    technicals: w.technicals / 100,
+    growth: w.growth / 100,
+    valuation: w.valuation / 100,
+    smartMoney: w.smartMoney / 100,
+    risk: w.risk / 100
+  };
+
+  return { technicalThresholds, scoringWeights };
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -305,10 +341,11 @@ app.get(
       // needs (balance sheet + cash flow), and no real annual-financials
       // source is wired up yet — so we pass [] and the engine returns
       // "unavailable" fundamentals honestly rather than fabricating them.
-      const technicals = TechnicalEngine.performFullAnalysis(quote, candles);
+      const engineConfig = getEngineConfig();
+      const technicals = TechnicalEngine.performFullAnalysis(quote, candles, engineConfig.technicalThresholds);
       const fundamentals = FundamentalEngine.performFullAnalysis(quote, [], technicals.overallTechnicalScore);
       const smartMoney = SmartMoneyEngine.performAnalysis(quote, shareholding, bulkDeals);
-      const score = ScoringEngine.calculateScore(quote, technicals, fundamentals, smartMoney);
+      const score = ScoringEngine.calculateScore(quote, technicals, fundamentals, smartMoney, engineConfig.scoringWeights);
 
       res.json({
         success: true,
@@ -465,10 +502,13 @@ app.get(
           symbol
         );
 
+      const engineConfig = getEngineConfig();
+
       const technicals =
         TechnicalEngine.performFullAnalysis(
           quote,
-          candles
+          candles,
+          engineConfig.technicalThresholds
         );
 
       const fundamentals =
@@ -490,7 +530,8 @@ app.get(
           quote,
           technicals,
           fundamentals,
-          smartMoney
+          smartMoney,
+          engineConfig.scoringWeights
         );
 
       const report =
@@ -853,6 +894,51 @@ app.get(
       data:
         SettingsStore.getSettings()
     });
+  }
+);
+
+app.post(
+  '/api/settings',
+  (
+    req: Request,
+    res: Response
+  ) => {
+    try {
+      const current = SettingsStore.getSettings();
+
+      // Merge one level deep so a partial payload (e.g. only
+      // scoringWeights) doesn't wipe out the rest of the settings object.
+      const merged = {
+        ...current,
+        ...req.body,
+        technicalThresholds: {
+          ...current.technicalThresholds,
+          ...(req.body?.technicalThresholds || {})
+        },
+        scoringWeights: {
+          ...current.scoringWeights,
+          ...(req.body?.scoringWeights || {})
+        },
+        developerContribution: {
+          ...current.developerContribution,
+          ...(req.body?.developerContribution || {})
+        }
+      };
+
+      SettingsStore.saveSettings(merged);
+
+      res.json({
+        success: true,
+        data: merged
+      });
+    } catch (error: any) {
+      console.error('Settings update error:', error);
+
+      res.status(500).json({
+        success: false,
+        error: error?.message || 'Failed to update settings'
+      });
+    }
   }
 );
 

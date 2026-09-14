@@ -3,10 +3,10 @@ import { ScoringEngine } from '../services/analytics/scoringEngine';
 import { TechnicalEngine } from '../services/analytics/technicalEngine';
 import { FundamentalEngine } from '../services/analytics/fundamentalEngine';
 import { SmartMoneyEngine } from '../services/analytics/smartMoneyEngine';
-import { NepseDataProvider } from '../services/providers/NepseDataProvider';
+import { MockDataProvider } from '../services/providers/MockDataProvider';
 
 describe('ScoringEngine Multi-Factor Calibration (NEPSE)', () => {
-  const provider = new NepseDataProvider();
+  const provider = new MockDataProvider();
 
   it('computes 0-100 score with full explainability drivers for NEPSE stocks', async () => {
     const quote = await provider.getQuote('NABIL');
